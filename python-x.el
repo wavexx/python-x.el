@@ -87,14 +87,30 @@
   (replace-regexp-in-string "\\s *\\\\\n\\s *" " " string))
 
 ;;;###autoload
+(defcustom python-multiline-highlight (if (require 'volatile-highlights nil t) t)
+  "When evaluating a statement with `python-shell-send-line' or
+`python-shell-send-line-and-step' which spans more than one line, highlight
+temporarily the evaluated region using `vhl/default-face'. Requires
+`volatile-highlights-mode' to be installed."
+  :type 'boolean
+  :group 'python-x)
+
 (defun python-shell-send-line ()
   "Send the current line (with any remaining continuations) to the inferior Python process,
 printing the result of the expression on the shell."
   (interactive)
-  (let ((start (line-beginning-position)) end)
+  (let (start start-lno	end end-lno)
+    (save-excursion
+      (back-to-indentation)
+      (setq start (point)
+	    start-lno (line-number-at-pos)))
     (save-excursion
       (python-nav-eol-eos)
-      (setq end (point)))
+      (setq end (point)
+	    end-lno (line-number-at-pos)))
+    (when (and python-multiline-highlight
+	       (/= start-lno end-lno))
+      (python-vhl-full-lines start end 0 0))
     (let* ((substring (buffer-substring-no-properties start end))
 	   (line (python-string-to-single-line substring)))
       (python-shell-send-string line))))
@@ -104,13 +120,22 @@ printing the result of the expression on the shell."
   "Send the current line (with any remaining continuations) to the inferior Python process,
 printing the result of the expression on the shell, then move on to the next statement."
   (interactive)
-  (let ((start (line-beginning-position)))
-    (python-nav-eol-eos)
-    (let* ((end (point))
-	   (substring (buffer-substring-no-properties start end))
+  (let (start start-lno	end end-lno)
+    (save-excursion
+      (back-to-indentation)
+      (setq start (point)
+	    start-lno (line-number-at-pos)))
+    (save-excursion
+      (python-nav-eol-eos)
+      (setq end (point)
+	    end-lno (line-number-at-pos)))
+    (python-nav-forward-statement)
+    (when (and python-multiline-highlight
+	       (/= start-lno end-lno))
+      (python-vhl-full-lines start (point) 0 1))
+    (let* ((substring (buffer-substring-no-properties start end))
 	   (line (python-string-to-single-line substring)))
-      (python-shell-send-string line)))
-  (python-nav-forward-statement))
+      (python-shell-send-string line))))
 
 
 ;; Delimited sections
@@ -129,6 +154,22 @@ spanning more than one line, highlight temporarily the evaluated region using
 `vhl/default-face'. Requires `volatile-highlights-mode' to be installed."
   :type 'boolean
   :group 'python-x)
+
+(defun python-vhl-full-lines (start end margin-top margin-bottom)
+  "Set a volatile highlight on the entire lines defined by start/end"
+  (save-excursion
+    (unless (eq (point-min) start)
+      (goto-char start)
+      (beginning-of-line (+ 1 margin-top))
+      (setq start (point)))
+    (unless (eq (point-max) end)
+      (goto-char end)
+      (beginning-of-line)
+      (forward-line (- 1 margin-bottom))
+      (setq end (point))))
+  (when (or (> start (window-start))
+	    (< end (window-end)))
+    (vhl/add-range start end)))
 
 (defun python-section-in-skiplist (pos skip)
   (if (not skip) nil
@@ -185,20 +226,7 @@ screenful, the region is temporarily highlighted according to
   (let ((start (python-section-search t))
 	(end (python-section-search nil)))
     (when python-section-highlight
-      (let ((start start) (end end))
-	(save-excursion
-	  ;; align the region to visual lines for presentation purposes
-	  (unless (eq (point-min) start)
-	    (goto-char start)
-	    (beginning-of-line 2)
-	    (setq start (point)))
-	  (unless (eq (point-max) end)
-	    (goto-char end)
-	    (beginning-of-line)
-	    (setq end (point))))
-	(when (or (> start (window-start))
-		  (< end (window-end)))
-	  (vhl/add-range start end))))
+      (python-vhl-full-lines start end 1 1))
     (python-shell-send-region start end)))
 
 ;;;###autoload
