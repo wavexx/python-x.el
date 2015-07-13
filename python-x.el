@@ -91,7 +91,7 @@
   "When evaluating a statement with `python-shell-send-line' or
 `python-shell-send-line-and-step' which spans more than one line, highlight
 temporarily the evaluated region using `vhl/default-face'. Requires
-`volatile-highlights-mode' to be installed."
+`volatile-highlights' to be installed."
   :type 'boolean
   :group 'python-x)
 
@@ -151,7 +151,7 @@ See `python-shell-send-fold-or-section'."
 (defcustom python-section-highlight (if (require 'volatile-highlights nil t) t)
   "When evaluating a code fold/section with `python-shell-send-fold-or-section'
 spanning more than one line, highlight temporarily the evaluated region using
-`vhl/default-face'. Requires `volatile-highlights-mode' to be installed."
+`vhl/default-face'. Requires `volatile-highlights' to be installed."
   :type 'boolean
   :group 'python-x)
 
