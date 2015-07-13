@@ -253,10 +253,18 @@ exception. Calls `display-buffer' according to `python-shell-show-exceptions'."
   (when python-shell-show-exceptions
     (display-buffer buffer)))
 
+(defvar python-comint-exceptions-regex
+  (concat "\\(" (mapconcat
+		 'identity
+		 '("\\bTraceback (most recent call last):\n  File \""
+		   "  File \"[^\"]+\", line [0-9]+\n.*\n +\\^\n\\(Syntax\\|Indentation\\)Error: ")
+		 "\\|") "\\)")
+  "Regular expression used to search for exceptions in the output")
+
 (defun python-comint-find-exceptions (output)
   (save-excursion
     (goto-char (point-max))
-    (when (re-search-backward "\\bTraceback (most recent call last):\n  File "
+    (when (re-search-backward python-comint-exceptions-regex
 			      comint-last-output-start t)
       (python-shell-show-exception-function (current-buffer)))))
 
