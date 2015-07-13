@@ -46,23 +46,41 @@
 (require 'python)
 (require 'folding)
 
-;; Verbose line stepping
+;; Verbose line evaluation stepping
+
+(defun python-nav-eol-eos ()
+  "Move point to the next statement ending exactly at the end of the line"
+  (let ((point (point)))
+    (end-of-line)
+    (python-nav-end-of-statement)
+    (when (not (eq point (point)))
+      (python-nav-eol-eos))))
 
 ;;;###autoload
 (defun python-shell-send-line ()
-  "TODO"
+  "Send the current line (with any remaining continuations) to the inferior Python process,
+printing the result of the expression on the shell."
   (interactive)
-  (let* ((start (line-beginning-position))
-	 (end (line-beginning-position 2))
-	 (substring (buffer-substring-no-properties start end)))
-    (python-shell-send-string substring)))
+  (let ((start (line-beginning-position)) end)
+    (save-excursion
+      (python-nav-eol-eos)
+      (setq end (point)))
+    (let* ((substring (buffer-substring-no-properties start end))
+	   (line (replace-regexp-in-string "\\\\\n" " " substring)))
+      (python-shell-send-string line))))
 
 ;;;###autoload
 (defun python-shell-send-line-and-step ()
-  "TODO"
+  "Send the current line (with any remaining continuations) to the inferior Python process,
+printing the result of the expression on the shell, then move on to the next statement."
   (interactive)
-  (python-shell-send-line)
-  (forward-line))
+  (let ((start (line-beginning-position)))
+    (python-nav-eol-eos)
+    (let* ((end (point))
+	   (substring (buffer-substring-no-properties start end))
+	   (line (replace-regexp-in-string "\\\\\n" " " substring)))
+      (python-shell-send-string line)))
+  (python-nav-forward-statement))
 
 
 ;; Delimited sections
