@@ -56,6 +56,9 @@
     (when (not (eq point (point)))
       (python-nav-eol-eos))))
 
+(defun python-string-to-single-line (string)
+  (replace-regexp-in-string "\\s *\\\\\n\\s *" " " string))
+
 ;;;###autoload
 (defun python-shell-send-line ()
   "Send the current line (with any remaining continuations) to the inferior Python process,
@@ -66,7 +69,7 @@ printing the result of the expression on the shell."
       (python-nav-eol-eos)
       (setq end (point)))
     (let* ((substring (buffer-substring-no-properties start end))
-	   (line (replace-regexp-in-string "\\\\\n" " " substring)))
+	   (line (python-string-to-single-line substring)))
       (python-shell-send-string line))))
 
 ;;;###autoload
@@ -78,7 +81,7 @@ printing the result of the expression on the shell, then move on to the next sta
     (python-nav-eol-eos)
     (let* ((end (point))
 	   (substring (buffer-substring-no-properties start end))
-	   (line (replace-regexp-in-string "\\\\\n" " " substring)))
+	   (line (python-string-to-single-line substring)))
       (python-shell-send-string line)))
   (python-nav-forward-statement))
 
