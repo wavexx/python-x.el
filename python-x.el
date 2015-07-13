@@ -154,7 +154,8 @@ printing the result of the expression on the shell, then move on to the next sta
 
 ;;;###autoload
 (defun python-shell-send-dwim ()
-  "TODO"
+  "Send the current region to the inferior Python process, if active.
+Otherwise, use `python-shell-send-current-fold-or-section'"
   (interactive)
   (if (use-region-p)
     (python-shell-send-region (region-beginning) (region-end))
@@ -168,7 +169,7 @@ printing the result of the expression on the shell, then move on to the next sta
   :type 'boolean
   :group 'python-x)
 
-(defun python-shell-exception-function (buffer)
+(defun python-shell-show-exception-function (buffer)
   (when python-shell-show-exceptions
     (display-buffer buffer)))
 
@@ -177,7 +178,7 @@ printing the result of the expression on the shell, then move on to the next sta
     (goto-char (point-max))
     (when (re-search-backward "\\bTraceback (most recent call last):\n  File "
 			      comint-last-output-start t)
-      (python-shell-exception-function (current-buffer)))))
+      (python-shell-show-exception-function (current-buffer)))))
 
 (add-hook 'inferior-python-mode-hook
 	  (lambda ()
