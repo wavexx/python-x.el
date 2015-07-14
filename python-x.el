@@ -73,14 +73,14 @@
 (require 'python)
 (require 'folding)
 
-;; Verbose line evaluation stepping
+;; Verbose line evaluation/stepping
 
 (defun python-nav-eol-eos ()
   "Move point to the next statement ending exactly at the end of the line"
   (let ((point (point)))
     (end-of-line)
     (python-nav-end-of-statement)
-    (when (not (eq point (point)))
+    (unless (eq point (point))
       (python-nav-eol-eos))))
 
 (defun python-string-to-single-line (string)
