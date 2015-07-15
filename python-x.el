@@ -3,7 +3,7 @@
 ;; Author: Yuri D'Elia <wavexx@thregr.org>
 ;; Version: 1.0
 ;; URL: https://github.com/wavexx/python-x.el
-;; Package-Requires: ((python "0.24") (folding))
+;; Package-Requires: ((python "0.24") (folding "0"))
 ;; Keywords: python eval folding
 
 ;; This file is NOT part of GNU Emacs.
