@@ -3,7 +3,7 @@
 ;; Author: Yuri D'Elia <wavexx@thregr.org>
 ;; Version: 1.0
 ;; URL: https://github.com/wavexx/python-x.el
-;; Package-Requires: ((python "0.24"))
+;; Package-Requires: ((python "0.24") (folding))
 ;; Keywords: python eval folding
 
 ;; This file is NOT part of GNU Emacs.
@@ -26,8 +26,8 @@
 ;;; Commentary:
 
 ;; python-x extends the built-in `python-mode' (F. Gallina's) with several
-;; additional functions and behaviors inspired by `ess-mode', which are
-;; targeted to interactive code evaluation with an inferior Python process.
+;; additional functions and behaviors inspired by `ess-mode' which are targeted
+;; to interactive code evaluation with an inferior Python process.
 ;;
 ;; python-x allows to evaluate code blocks using comments as delimiters (code
 ;; "sections") or using arbitrarily nested folding marks.
@@ -46,10 +46,11 @@
 ;; - `python-shell-send-dwim': evaluate the active region when active,
 ;;   otherwise revert to the current fold or section.
 ;;
-;; python-x uses `volatile-highlights' for highlighting. Installation through
-;; "melpa" is recommended (you don't actually need to enable
-;; `volatile-highlights-mode' itself). `folding-mode' is similarly required (on
-;; Debian it can be installed through the "emacs-goodies-el" package).
+;; python-x uses `volatile-highlights', when available, for highlighting
+;; multi-line blocks. Installation through "melpa" is recommended (you don't
+;; actually need to enable `volatile-highlights-mode' itself). python-x also
+;; uses `folding' to interpret and define folding marks. `folding-mode' needs
+;; to be enabled manually if code folding is also desired.
 ;;
 ;; Read through the Usage section in the source file for usage instructions and
 ;; recommended keybindings.
