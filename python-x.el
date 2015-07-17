@@ -125,7 +125,7 @@ highlight is not set if spanning a single line or the entire visible region."
 		   (< end (window-end))))
       (vhl/add-range start end))))
 
-(defun python-shell--send-block-by-motion (move-start move-end step as-region)
+(defun python-shell--send-block-with-motion (move-start move-end step as-region)
   (let (start end)
     (save-excursion
       (funcall move-start)
@@ -156,8 +156,8 @@ highlight is not set if spanning a single line or the entire visible region."
   "Send the current line (with any remaining continuations) to the inferior Python process,
 printing the result of the expression on the shell."
   (interactive)
-  (python-shell--send-block-by-motion 'back-to-indentation 'python-nav-eol-eos
-				      nil nil))
+  (python-shell--send-block-with-motion 'back-to-indentation 'python-nav-eol-eos
+					nil nil))
 
 ;;;###autoload
 (defun python-shell-send-line-and-step ()
@@ -165,8 +165,8 @@ printing the result of the expression on the shell."
 printing the result of the expression on the shell, then move on to the next
 statement."
   (interactive)
-  (python-shell--send-block-by-motion 'back-to-indentation 'python-nav-eol-eos
-				       t nil))
+  (python-shell--send-block-with-motion 'back-to-indentation 'python-nav-eol-eos
+					t nil))
 
 
 ;; Motion by paragraphs
@@ -175,16 +175,16 @@ statement."
 (defun python-shell-send-paragraph ()
   "Send the current paragraph to the inferior Python process"
   (interactive)
-  (python-shell--send-block-by-motion 'backward-paragraph 'forward-paragraph
-				      nil t))
+  (python-shell--send-block-with-motion 'backward-paragraph 'forward-paragraph
+					nil t))
 
 ;;;###autoload
 (defun python-shell-send-paragraph-and-step ()
   "Send the current paragraph to the inferior Python process, then move on to
 the next."
   (interactive)
-  (python-shell--send-block-by-motion 'backward-paragraph 'forward-paragraph
-				      'forward-paragraph t))
+  (python-shell--send-block-with-motion 'backward-paragraph 'forward-paragraph
+					'forward-paragraph t))
 
 ;;;###autoload
 (defun python-shell-send-region-or-paragraph ()
