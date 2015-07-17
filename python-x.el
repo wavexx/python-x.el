@@ -137,9 +137,9 @@ highlight is not set if spanning a single line or the entire visible region."
       (when (functionp step)
 	(funcall step))
       (python-nav-forward-statement))
-    (let ((margin-start (if as-region 1 0))
-	  (margin-end (if (or step as-region) 1 0)))
-      (when python-multiline-highlight
+    (when python-multiline-highlight
+      (let ((margin-start (if as-region 1 0))
+	    (margin-end (if (or step as-region) 1 0)))
 	(python--vhl-full-lines start (if step (point) end)
 				margin-start margin-end)))
     (if as-region
