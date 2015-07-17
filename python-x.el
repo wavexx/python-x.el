@@ -84,17 +84,35 @@
     (unless (eq point (point))
       (python-nav-eol-eos))))
 
-(defun python-string-to-single-line (string)
+(defun python--string-to-single-line (string)
   (replace-regexp-in-string "\\s *\\\\\n\\s *" " " string))
 
+(defvar python--vhl-available (if (require 'volatile-highlights nil t) t))
+
 ;;;###autoload
-(defcustom python-multiline-highlight (if (require 'volatile-highlights nil t) t)
+(defcustom python-multiline-highlight python--vhl-available
   "When evaluating a statement with `python-shell-send-line' or
 `python-shell-send-line-and-step' which spans more than one line, highlight
 temporarily the evaluated region using `vhl/default-face'. Requires
 `volatile-highlights' to be installed."
   :type 'boolean
   :group 'python-x)
+
+(defun python--vhl-full-lines (start end margin-top margin-bottom)
+  "Set a volatile highlight on the entire lines defined by start/end"
+  (save-excursion
+    (unless (eq (point-min) start)
+      (goto-char start)
+      (beginning-of-line (+ 1 margin-top))
+      (setq start (point)))
+    (unless (eq (point-max) end)
+      (goto-char end)
+      (beginning-of-line)
+      (forward-line (- 1 margin-bottom))
+      (setq end (point))))
+  (when (or (> start (window-start))
+	    (< end (window-end)))
+    (vhl/add-range start end)))
 
 (defun python-shell-send-line ()
   "Send the current line (with any remaining continuations) to the inferior Python process,
@@ -111,9 +129,9 @@ printing the result of the expression on the shell."
 	    end-lno (line-number-at-pos)))
     (when (and python-multiline-highlight
 	       (/= start-lno end-lno))
-      (python-vhl-full-lines start end 0 0))
+      (python--vhl-full-lines start end 0 0))
     (let* ((substring (buffer-substring-no-properties start end))
-	   (line (python-string-to-single-line substring)))
+	   (line (python--string-to-single-line substring)))
       (python-shell-send-string line))))
 
 ;;;###autoload
@@ -133,9 +151,9 @@ printing the result of the expression on the shell, then move on to the next sta
     (python-nav-forward-statement)
     (when (and python-multiline-highlight
 	       (/= start-lno end-lno))
-      (python-vhl-full-lines start (point) 0 1))
+      (python--vhl-full-lines start (point) 0 1))
     (let* ((substring (buffer-substring-no-properties start end))
-	   (line (python-string-to-single-line substring)))
+	   (line (python--string-to-single-line substring)))
       (python-shell-send-string line))))
 
 
@@ -149,41 +167,25 @@ See `python-shell-send-fold-or-section'."
   :group 'python-x)
 
 ;;;###autoload
-(defcustom python-section-highlight (if (require 'volatile-highlights nil t) t)
+(defcustom python-section-highlight python--vhl-available
   "When evaluating a code fold/section with `python-shell-send-fold-or-section'
 spanning more than one line, highlight temporarily the evaluated region using
 `vhl/default-face'. Requires `volatile-highlights' to be installed."
   :type 'boolean
   :group 'python-x)
 
-(defun python-vhl-full-lines (start end margin-top margin-bottom)
-  "Set a volatile highlight on the entire lines defined by start/end"
-  (save-excursion
-    (unless (eq (point-min) start)
-      (goto-char start)
-      (beginning-of-line (+ 1 margin-top))
-      (setq start (point)))
-    (unless (eq (point-max) end)
-      (goto-char end)
-      (beginning-of-line)
-      (forward-line (- 1 margin-bottom))
-      (setq end (point))))
-  (when (or (> start (window-start))
-	    (< end (window-end)))
-    (vhl/add-range start end)))
-
-(defun python-section-in-skiplist (pos skip)
+(defun python--section-in-skiplist (pos skip)
   (if (not skip) nil
       (let ((start (car skip))
 	    (end (cadr skip)))
 	(or (and (>= pos start) (<= pos end))
-	    (python-section-in-skiplist pos (cddr skip))))))
+	    (python--section-in-skiplist pos (cddr skip))))))
 
-(defun python-section-search-skiplist (fn skip)
+(defun python--section-search-skiplist (fn skip)
   (loop for pos = (funcall fn python-section-delimiter nil t)
      while pos do
        (setq pos (match-beginning 0))
-       (if (not (python-section-in-skiplist pos skip))
+       (if (not (python--section-in-skiplist pos skip))
 	   (return pos))))
 
 (defun python-section-search (rev)
@@ -195,7 +197,7 @@ spanning more than one line, highlight temporarily the evaluated region using
 	  (save-restriction
 	    (narrow-to-region (point) pos)
 	    (save-excursion
-	      (or (python-section-search-skiplist
+	      (or (python--section-search-skiplist
 		   (if rev 'search-backward 'search-forward)
 		   (if rev skip (nreverse skip)))
 		  pos)))))))
@@ -227,7 +229,7 @@ screenful, the region is temporarily highlighted according to
   (let ((start (python-section-search t))
 	(end (python-section-search nil)))
     (when python-section-highlight
-      (python-vhl-full-lines start end 1 1))
+      (python--vhl-full-lines start end 1 1))
     (python-shell-send-region start end)))
 
 ;;;###autoload
@@ -248,11 +250,13 @@ Otherwise, use `python-shell-send-current-fold-or-section'"
   :type 'boolean
   :group 'python-x)
 
-(defun python-shell-show-exception-function (buffer)
+(defvar python-shell-show-exception-function
+  (lambda (buffer)
+    (when python-shell-show-exceptions
+      (display-buffer buffer)))
   "Function invoked when the inferion Python process emits an uncaught
-exception. Calls `display-buffer' according to `python-shell-show-exceptions'."
-  (when python-shell-show-exceptions
-    (display-buffer buffer)))
+exception. By default, simply call `display-buffer' according to
+`python-shell-show-exceptions'.")
 
 (defvar python-comint-exceptions-regex
   (concat "\\(" (mapconcat
@@ -267,7 +271,7 @@ exception. Calls `display-buffer' according to `python-shell-show-exceptions'."
     (goto-char (point-max))
     (when (re-search-backward python-comint-exceptions-regex
 			      comint-last-output-start t)
-      (python-shell-show-exception-function (current-buffer)))))
+      (funcall python-shell-show-exception-function (current-buffer)))))
 
 (add-hook 'inferior-python-mode-hook
 	  (lambda ()
