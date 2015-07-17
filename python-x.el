@@ -30,7 +30,9 @@
 ;; to interactive code evaluation with an inferior Python process.
 ;;
 ;; python-x allows to evaluate code blocks using comments as delimiters (code
-;; "sections") or using arbitrarily nested folding marks.
+;; "sections") or using arbitrarily nested folding marks. By default, a code
+;; section is delimited by comments starting with "# ---"; while folds are
+;; defined by "# {{{" and "# }}}" (see `python-shell-send-fold-or-section').
 ;;
 ;; python-x installs an handler to show uncaught exceptions produced by
 ;; interactive code evaluation by default. See `python-shell-show-exceptions'
@@ -41,9 +43,14 @@
 ;;   for statement and line continuations.
 ;; - `python-shell-send-line-and-step': evaluate and current line as above,
 ;;   then move the point to the next automatically.
+;; - `python-shell-send-paragraph': evaluate the current paragraph.
+;; - `python-shell-send-paragraph-and-step': evaluate the current paragraph,
+;;   then move the point to the next automatically.
+;; - `python-shell-send-region-or-paragraph': evaluate the current region when
+;;   active, otherwise evaluate the current paragraph.
 ;; - `python-shell-send-fold-or-section': evaluate the region defined by the
 ;;   current code fold or section.
-;; - `python-shell-send-dwim': evaluate the active region when active,
+;; - `python-shell-send-dwim': evaluate the region when active,
 ;;   otherwise revert to the current fold or section.
 ;;
 ;; python-x uses `volatile-highlights', when available, for highlighting
@@ -91,70 +98,102 @@
 
 ;;;###autoload
 (defcustom python-multiline-highlight python--vhl-available
-  "When evaluating a statement with `python-shell-send-line' or
-`python-shell-send-line-and-step' which spans more than one line, highlight
-temporarily the evaluated region using `vhl/default-face'. Requires
-`volatile-highlights' to be installed."
+  "When evaluating a statement which spans more than one line and less than a
+screenful, highlight temporarily the evaluated region using `vhl/default-face'.
+Requires `volatile-highlights' to be installed."
   :type 'boolean
   :group 'python-x)
 
 (defun python--vhl-full-lines (start end margin-top margin-bottom)
-  "Set a volatile highlight on the entire lines defined by start/end"
-  (save-excursion
-    (unless (eq (point-min) start)
+  "Set a volatile highlight on the entire lines defined by start/end. The
+highlight is not set if spanning a single line or the entire visible region."
+  (let (start-lno end-lno)
+    (save-excursion
       (goto-char start)
-      (beginning-of-line (+ 1 margin-top))
-      (setq start (point)))
-    (unless (eq (point-max) end)
+      (unless (eq (point-min) start)
+	(beginning-of-line (+ 1 margin-top)))
+      (setq start (point)
+	    start-lno (line-number-at-pos))
       (goto-char end)
-      (beginning-of-line)
-      (forward-line (- 1 margin-bottom))
-      (setq end (point))))
-  (when (or (> start (window-start))
-	    (< end (window-end)))
-    (vhl/add-range start end)))
+      (unless (eq (point-max) end)
+	(beginning-of-line)
+	(forward-line (- 1 margin-bottom)))
+      (setq end (point)
+	    end-lno (line-number-at-pos)))
+    (when (and (> (- end-lno start-lno) 1)
+	       (or (> start (window-start))
+		   (< end (window-end))))
+      (vhl/add-range start end))))
 
+(defun python-shell--send-block-by-motion (move-start move-end step as-region)
+  (let (start end)
+    (save-excursion
+      (funcall move-start)
+      (setq start (point)))
+    (save-excursion
+      (funcall move-end)
+      (setq end (point)))
+    (when step
+      (when (functionp step)
+	(funcall step))
+      (python-nav-forward-statement))
+    (let ((margin-start (if as-region 1 0))
+	  (margin-end (if (or step as-region) 1 0)))
+      (when python-multiline-highlight
+	(python--vhl-full-lines start (if step (point) end)
+				margin-start margin-end)))
+    (if as-region
+	(python-shell-send-region start end)
+	(let* ((substring (buffer-substring-no-properties start end))
+	       (line (python--string-to-single-line substring)))
+	  (python-shell-send-string line)))))
+
+
+;; Motion by lines
+
+;;;###autoload
 (defun python-shell-send-line ()
   "Send the current line (with any remaining continuations) to the inferior Python process,
 printing the result of the expression on the shell."
   (interactive)
-  (let (start start-lno	end end-lno)
-    (save-excursion
-      (back-to-indentation)
-      (setq start (point)
-	    start-lno (line-number-at-pos)))
-    (save-excursion
-      (python-nav-eol-eos)
-      (setq end (point)
-	    end-lno (line-number-at-pos)))
-    (when (and python-multiline-highlight
-	       (/= start-lno end-lno))
-      (python--vhl-full-lines start end 0 0))
-    (let* ((substring (buffer-substring-no-properties start end))
-	   (line (python--string-to-single-line substring)))
-      (python-shell-send-string line))))
+  (python-shell--send-block-by-motion 'back-to-indentation 'python-nav-eol-eos
+				      nil nil))
 
 ;;;###autoload
 (defun python-shell-send-line-and-step ()
   "Send the current line (with any remaining continuations) to the inferior Python process,
-printing the result of the expression on the shell, then move on to the next statement."
+printing the result of the expression on the shell, then move on to the next
+statement."
   (interactive)
-  (let (start start-lno	end end-lno)
-    (save-excursion
-      (back-to-indentation)
-      (setq start (point)
-	    start-lno (line-number-at-pos)))
-    (save-excursion
-      (python-nav-eol-eos)
-      (setq end (point)
-	    end-lno (line-number-at-pos)))
-    (python-nav-forward-statement)
-    (when (and python-multiline-highlight
-	       (/= start-lno end-lno))
-      (python--vhl-full-lines start (point) 0 1))
-    (let* ((substring (buffer-substring-no-properties start end))
-	   (line (python--string-to-single-line substring)))
-      (python-shell-send-string line))))
+  (python-shell--send-block-by-motion 'back-to-indentation 'python-nav-eol-eos
+				       t nil))
+
+
+;; Motion by paragraphs
+
+;;;###autoload
+(defun python-shell-send-paragraph ()
+  "Send the current paragraph to the inferior Python process"
+  (interactive)
+  (python-shell--send-block-by-motion 'backward-paragraph 'forward-paragraph
+				      nil t))
+
+;;;###autoload
+(defun python-shell-send-paragraph-and-step ()
+  "Send the current paragraph to the inferior Python process, then move on to
+the next."
+  (interactive)
+  (python-shell--send-block-by-motion 'backward-paragraph 'forward-paragraph
+				      'forward-paragraph t))
+
+;;;###autoload
+(defun python-shell-send-region-or-paragraph ()
+  "Send the current region to the inferior Python process, if active.
+Otherwise, send the current paragraph."
+  (interactive)
+  (if (use-region-p)
+      (python-shell-send-region (region-beginning) (region-end))
+      (python-shell-send-paragraph)))
 
 
 ;; Delimited sections
@@ -238,8 +277,8 @@ screenful, the region is temporarily highlighted according to
 Otherwise, use `python-shell-send-current-fold-or-section'"
   (interactive)
   (if (use-region-p)
-    (python-shell-send-region (region-beginning) (region-end))
-    (python-shell-send-fold-or-section)))
+      (python-shell-send-region (region-beginning) (region-end))
+      (python-shell-send-fold-or-section)))
 
 
 ;; Exception handling
