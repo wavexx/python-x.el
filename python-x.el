@@ -86,13 +86,6 @@
 
 ;; Verbose line evaluation/stepping
 
-(defun python-nav-eol-eos ()
-  "Move point to the next statement ending exactly at the end of the line"
-  (let ((point (point)))
-    (end-of-line)
-    (python-nav-end-of-statement)
-    (unless (eq point (point))
-      (python-nav-eol-eos))))
 
 (defun python-string-to-statement (string)
   "Tweak the Python code string so that it can be evaluated as a single-line
@@ -158,7 +151,7 @@ highlight is not set if spanning a single line or the entire visible region."
   "Send the current line (with any remaining continuations) to the inferior Python process,
 printing the result of the expression on the shell."
   (interactive)
-  (python-shell--send-block-with-motion 'back-to-indentation 'python-nav-eol-eos
+  (python-shell--send-block-with-motion 'python-nav-beginning-of-statement 'python-nav-end-of-statement
 					nil nil))
 
 ;;;###autoload
@@ -167,7 +160,7 @@ printing the result of the expression on the shell."
 printing the result of the expression on the shell, then move on to the next
 statement."
   (interactive)
-  (python-shell--send-block-with-motion 'back-to-indentation 'python-nav-eol-eos
+  (python-shell--send-block-with-motion 'python-nav-beginning-of-statement 'python-nav-end-of-statement
 					t nil))
 
 
@@ -331,7 +324,7 @@ exception. By default, simply call `display-buffer' according to
 ;;;###autoload
 (defun python-shell-print-region-or-symbol ()
   "Send the current region to the inferior Python process, if active; otherwise
-the send the symbol at point. Print and display the result on output buffer."
+the send the symbol at point. Print and display the result on the output buffer."
   (interactive)
   (let* ((substring (if (use-region-p)
 			(buffer-substring-no-properties (region-beginning) (region-end))
