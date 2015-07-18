@@ -120,6 +120,33 @@ highlight is not set if spanning a single line or the entire visible region."
 		 (< end (window-end))))
     (vhl/add-range start end)))
 
+(defun python-x-shell-send-region (beg end)
+  (let ((region (if (= beg end)
+                  (let ((region (buffer-substring beg end))
+                        (indent-level nil))
+                    (with-temp-buffer
+                      (insert region)
+                      (setq-local indent-tabs-mode nil)
+                      (goto-char (point-min))
+                      (while (< (point) (point-max))
+                        (cond
+                         ((and (not indent-level)
+                               (not (looking-at "[ \t]*$")))
+                          (setq indent-level (current-indentation)))
+                         ((and indent-level
+                               (not (looking-at "[ \t]*$"))
+                               (< (current-indentation)
+                                  indent-level))
+                          (error "Can't adjust indentation, consecutive lines indented less than starting line")))
+                        (forward-line))
+                      (indent-rigidly (point-min)
+                                      (point-max)
+                                      (- indent-level))
+                      (buffer-string))))))
+       (when (string-match "\t" region)
+         (message "Region contained tabs, this might cause weird errors"))
+       (python-shell-send-string region)))
+
 (defun python-shell--send-block-with-motion (move-start move-end step as-region)
   (let (start end)
     (save-excursion
@@ -138,7 +165,7 @@ highlight is not set if spanning a single line or the entire visible region."
 	(python--vhl-full-lines start (if step (point) end)
 				margin-start margin-end)))
     (if as-region
-	(python-shell-send-region start end)
+	(python-x-shell-send-region start end)
 	(let* ((substring (buffer-substring-no-properties start end))
 	       (stm (python-string-to-statement substring)))
 	  (python-shell-send-string stm)))))
@@ -187,7 +214,7 @@ the next."
 Otherwise, send the current paragraph."
   (interactive)
   (if (use-region-p)
-      (python-shell-send-region (region-beginning) (region-end))
+      (python-x-shell-send-region (region-beginning) (region-end))
       (python-shell-send-paragraph)))
 
 
@@ -264,7 +291,7 @@ screenful, the region is temporarily highlighted according to
 	(end (python-section-search nil)))
     (when python-section-highlight
       (python--vhl-full-lines start end 1 1))
-    (python-shell-send-region start end)))
+    (python-x-shell-send-region start end)))
 
 ;;;###autoload
 (defun python-shell-send-dwim ()
@@ -272,7 +299,7 @@ screenful, the region is temporarily highlighted according to
 Otherwise, use `python-shell-send-current-fold-or-section'"
   (interactive)
   (if (use-region-p)
-      (python-shell-send-region (region-beginning) (region-end))
+      (python-x-shell-send-region (region-beginning) (region-end))
       (python-shell-send-fold-or-section)))
 
 
