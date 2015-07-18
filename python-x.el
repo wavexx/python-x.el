@@ -84,8 +84,150 @@
 (require 'python)
 (require 'folding)
 
-;; Verbose line evaluation/stepping
+;; Patch some buggy definitions in python.el, for which we need internal symbols
+(when (version< emacs-version "25")
+  (eval-when-compile
+    (defconst python-rx-constituents
+      `((block-start          . ,(rx symbol-start
+				     (or "def" "class" "if" "elif" "else" "try"
+					 "except" "finally" "for" "while" "with")
+				     symbol-end))
+	(dedenter            . ,(rx symbol-start
+				    (or "elif" "else" "except" "finally")
+				    symbol-end))
+	(block-ender         . ,(rx symbol-start
+				    (or
+				     "break" "continue" "pass" "raise" "return")
+				    symbol-end))
+	(decorator            . ,(rx line-start (* space) ?@ (any letter ?_)
+				     (* (any word ?_))))
+	(defun                . ,(rx symbol-start (or "def" "class") symbol-end))
+	(if-name-main         . ,(rx line-start "if" (+ space) "__name__"
+				     (+ space) "==" (+ space)
+				     (any ?' ?\") "__main__" (any ?' ?\")
+				     (* space) ?:))
+	(symbol-name          . ,(rx (any letter ?_) (* (any word ?_))))
+	(open-paren           . ,(rx (or "{" "[" "(")))
+	(close-paren          . ,(rx (or "}" "]" ")")))
+	(simple-operator      . ,(rx (any ?+ ?- ?/ ?& ?^ ?~ ?| ?* ?< ?> ?= ?%)))
+	;; FIXME: rx should support (not simple-operator).
+	(not-simple-operator  . ,(rx
+				  (not
+				   (any ?+ ?- ?/ ?& ?^ ?~ ?| ?* ?< ?> ?= ?%))))
+	;; FIXME: Use regexp-opt.
+	(operator             . ,(rx (or "+" "-" "/" "&" "^" "~" "|" "*" "<" ">"
+					 "=" "%" "**" "//" "<<" ">>" "<=" "!="
+					 "==" ">=" "is" "not")))
+	;; FIXME: Use regexp-opt.
+	(assignment-operator  . ,(rx (or "=" "+=" "-=" "*=" "/=" "//=" "%=" "**="
+					 ">>=" "<<=" "&=" "^=" "|=")))
+	(string-delimiter . ,(rx (and
+				  ;; Match even number of backslashes.
+				  (or (not (any ?\\ ?\' ?\")) point
+				      ;; Quotes might be preceded by a escaped quote.
+				      (and (or (not (any ?\\)) point) ?\\
+					   (* ?\\ ?\\) (any ?\' ?\")))
+				  (* ?\\ ?\\)
+				  ;; Match single or triple quotes of any kind.
+				  (group (or  "\"" "\"\"\"" "'" "'''")))))
+	(coding-cookie . ,(rx line-start ?# (* space)
+			      (or
+			       ;; # coding=<encoding name>
+			       (: "coding" (or ?: ?=) (* space) (group-n 1 (+ (or word ?-))))
+			       ;; # -*- coding: <encoding name> -*-
+			       (: "-*-" (* space) "coding:" (* space)
+				  (group-n 1 (+ (or word ?-))) (* space) "-*-")
+			       ;; # vim: set fileencoding=<encoding name> :
+			       (: "vim:" (* space) "set" (+ space)
+				  "fileencoding" (* space) ?= (* space)
+				  (group-n 1 (+ (or word ?-))) (* space) ":")))))
+      "Additional Python specific sexps for `python-rx'")
 
+    (defmacro python-rx (&rest regexps)
+      "Python mode specialized rx macro.
+This variant of `rx' supports common Python named REGEXPS."
+      (let ((rx-constituents (append python-rx-constituents rx-constituents)))
+	(cond ((null regexps)
+	       (error "No regexp"))
+	      ((cdr regexps)
+	       (rx-to-string `(and ,@regexps) t))
+	      (t
+	       (rx-to-string (car regexps) t))))))
+
+  ;; http://debbugs.gnu.org/cgi/bugreport.cgi?bug=21086
+  (defun python-shell-buffer-substring (start end &optional nomain)
+    "Send buffer substring from START to END formatted for shell.
+This is a wrapper over `buffer-substring' that takes care of
+different transformations for the code sent to be evaluated in
+the python shell:
+  1. When optional argument NOMAIN is non-nil everything under an
+     \"if __name__ == '__main__'\" block will be removed.
+  2. When a subregion of the buffer is sent, it takes care of
+     appending extra empty lines so tracebacks are correct.
+  3. When the region sent is a substring of the current buffer, a
+     coding cookie is added.
+  4. Wraps indented regions under an \"if True:\" block so the
+     interpreter evaluates them correctly."
+    (let* ((substring (buffer-substring-no-properties start end))
+	   (starts-at-point-min-p (save-restriction
+				    (widen)
+				    (= (point-min) start)))
+	   (encoding (python-info-encoding))
+	   (fillstr (when (not starts-at-point-min-p)
+		      (concat
+		       (format "# -*- coding: %s -*-\n" encoding)
+		       (make-string
+			;; Subtract 2 because of the coding cookie.
+			(- (line-number-at-pos start) 2) ?\n))))
+	   (block-param (save-excursion
+			  (goto-char start)
+			  (progn
+			    (python-util-forward-comment 1)
+			    (list (current-indentation)
+				  (/= (point) start)))))
+	   (block-indentation (car block-param))
+	   (starts-with-indentation-p (cadr block-param)))
+      (with-temp-buffer
+	(python-mode)
+	(if fillstr (insert fillstr))
+	(when (and (> block-indentation 0) (not starts-with-indentation-p))
+	  (insert (make-string block-indentation ?\s)))
+	(insert substring)
+	(goto-char (point-min))
+	(when (> block-indentation 0)
+	  (insert "if True:")
+	  (delete-region (point) (line-end-position)))
+	(when nomain
+	  (let* ((if-name-main-start-end
+		  (and nomain
+		       (save-excursion
+			 (when (python-nav-if-name-main)
+			   (cons (point)
+				 (progn (python-nav-forward-sexp-safe)
+					;; Include ending newline
+					(forward-line 1)
+					(point)))))))
+		 ;; Oh destructuring bind, how I miss you.
+		 (if-name-main-start (car if-name-main-start-end))
+		 (if-name-main-end (cdr if-name-main-start-end))
+		 (fillstr (make-string
+			   (- (line-number-at-pos if-name-main-end)
+			      (line-number-at-pos if-name-main-start)) ?\n)))
+	    (when if-name-main-start-end
+	      (goto-char if-name-main-start)
+	      (delete-region if-name-main-start if-name-main-end)
+	      (insert fillstr))))
+	;; Ensure there's only one coding cookie in the generated string.
+	(goto-char (point-min))
+	(when (looking-at-p (python-rx coding-cookie))
+	  (forward-line 1)
+	  (when (looking-at-p (python-rx coding-cookie))
+	    (delete-region
+	     (line-beginning-position) (line-end-position))))
+	(buffer-substring-no-properties (point-min) (point-max))))))
+
+
+;; Verbose line evaluation/stepping
 
 (defun python-string-to-statement (string)
   "Tweak the Python code string so that it can be evaluated as a single-line
