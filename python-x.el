@@ -52,6 +52,8 @@
 ;;   current code fold or section.
 ;; - `python-shell-send-dwim': evaluate the region when active,
 ;;   otherwise revert to the current fold or section.
+;; - `python-shell-print-region-or-symbol': evaluate and print the current
+;;   region or symbol at point, displaying the inferior process output.
 ;;
 ;; python-x uses `volatile-highlights', when available, for highlighting
 ;; multi-line blocks. Installation through "melpa" is recommended (you don't
@@ -74,7 +76,8 @@
 ;;     (define-key python-mode-map (kbd "C-c C-n") 'python-shell-send-line-and-step)
 ;;     (define-key python-mode-map (kbd "C-c C-f") 'python-shell-send-defun)
 ;;     (define-key python-mode-map (kbd "C-c C-b") 'python-shell-send-buffer)
-;;     (define-key python-mode-map (kbd "C-c C-c") 'python-shell-send-dwim)))
+;;     (define-key python-mode-map (kbd "C-c C-c") 'python-shell-send-dwim)
+;;     (define-key python-mode-map (kbd "C-c p") 'python-shell-print-region-or-symbol)))
 
 
 ;;; Code:
@@ -91,7 +94,9 @@
     (unless (eq point (point))
       (python-nav-eol-eos))))
 
-(defun python--string-to-single-line (string)
+(defun python-string-to-statement (string)
+  "Tweak the Python code string so that it can be evaluated as a single-line
+statement for display purposes"
   (replace-regexp-in-string "\\s *\\\\\n\\s *" " " string))
 
 (defvar python--vhl-available (if (require 'volatile-highlights nil t) t))
@@ -142,8 +147,8 @@ highlight is not set if spanning a single line or the entire visible region."
     (if as-region
 	(python-shell-send-region start end)
 	(let* ((substring (buffer-substring-no-properties start end))
-	       (line (python--string-to-single-line substring)))
-	  (python-shell-send-string line)))))
+	       (stm (python-string-to-statement substring)))
+	  (python-shell-send-string stm)))))
 
 
 ;; Motion by lines
@@ -313,6 +318,28 @@ exception. By default, simply call `display-buffer' according to
 	  (lambda ()
 	    (add-hook 'comint-output-filter-functions
 		      'python-comint-find-exceptions)))
+
+
+;; Utilities
+
+;;;###autoload
+(defun python-shell-display-shell ()
+  "Display the inferior Python process in another window."
+  (interactive)
+  (display-buffer (process-buffer (python-shell-get-process)) t))
+
+;;;###autoload
+(defun python-shell-print-region-or-symbol ()
+  "Send the current region to the inferior Python process, if active; otherwise
+the send the symbol at point. Print and display the result on output buffer."
+  (interactive)
+  (let* ((substring (if (use-region-p)
+			(buffer-substring-no-properties (region-beginning) (region-end))
+			(symbol-name (symbol-at-point))))
+	 (stm (python-string-to-statement substring)))
+    (python-shell-send-string stm)
+    (python-shell-display-shell)))
+
 
 (provide 'python-x)
 
