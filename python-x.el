@@ -351,18 +351,18 @@ spanning more than one line, highlight temporarily the evaluated region using
   :type 'boolean
   :group 'python-x)
 
-(defun python--section-in-skiplist (pos skip)
+(defun python-section--in-skiplist (pos skip)
   (if (not skip) nil
       (let ((start (car skip))
 	    (end (cadr skip)))
 	(or (and (>= pos start) (<= pos end))
-	    (python--section-in-skiplist pos (cddr skip))))))
+	    (python-section--in-skiplist pos (cddr skip))))))
 
-(defun python--section-search-skiplist (fn skip)
+(defun python-section--search-skiplist (fn skip)
   (loop for pos = (funcall fn python-section-delimiter nil t)
      while pos do
        (setq pos (match-beginning 0))
-       (if (not (python--section-in-skiplist pos skip))
+       (if (not (python-section--in-skiplist pos skip))
 	   (return pos))))
 
 (defun python-section-search (rev)
@@ -374,7 +374,7 @@ spanning more than one line, highlight temporarily the evaluated region using
 	  (save-restriction
 	    (narrow-to-region (point) pos)
 	    (save-excursion
-	      (or (python--section-search-skiplist
+	      (or (python-section--search-skiplist
 		   (if rev 'search-backward 'search-forward)
 		   (if rev skip (nreverse skip)))
 		  pos)))))))
