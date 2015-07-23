@@ -234,6 +234,7 @@ the python shell:
 statement for display purposes"
   (replace-regexp-in-string "\\s *\\\\\n\\s *" " " string))
 
+;;;###autoload
 (defvar python--vhl-available (if (require 'volatile-highlights nil t) t))
 
 ;;;###autoload
