@@ -4,7 +4,7 @@
 ;; Version: 1.0
 ;; URL: https://github.com/wavexx/python-x.el
 ;; Package-Requires: ((python "0.24") (folding "0"))
-;; Keywords: python eval folding
+;; Keywords: python, eval, folding
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -423,7 +423,7 @@ Otherwise, use `python-shell-send-current-fold-or-section'"
 
 (defcustom python-shell-show-exceptions t
   "Display uncaught exceptions of the inferior Python process using
-`python-shell-show-exceptions'."
+`python-shell-show-exception-function'."
   :type 'boolean
   :group 'python-x)
 
