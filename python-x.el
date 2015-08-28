@@ -85,8 +85,8 @@
 (require 'folding)
 
 ;; Patch some buggy definitions in python.el, for which we need internal symbols
-(when (version< emacs-version "25")
-  (eval-when-compile
+(when (version< emacs-version "25.1")
+  (eval-and-compile
     (defconst python-rx-constituents
       `((block-start          . ,(rx symbol-start
 				     (or "def" "class" "if" "elif" "else" "try"
@@ -168,33 +168,32 @@ the python shell:
      coding cookie is added.
   4. Wraps indented regions under an \"if True:\" block so the
      interpreter evaluates them correctly."
-    (let* ((substring (buffer-substring-no-properties start end))
+    (let* ((start (save-excursion
+		    ;; Normalize start to the line beginning position.
+		    (goto-char start)
+		    (line-beginning-position)))
+	   (substring (buffer-substring-no-properties start end))
 	   (starts-at-point-min-p (save-restriction
 				    (widen)
 				    (= (point-min) start)))
 	   (encoding (python-info-encoding))
+	   (toplevel-p (zerop (save-excursion
+				(goto-char start)
+				(python-util-forward-comment 1)
+				(current-indentation))))
 	   (fillstr (when (not starts-at-point-min-p)
 		      (concat
 		       (format "# -*- coding: %s -*-\n" encoding)
 		       (make-string
 			;; Subtract 2 because of the coding cookie.
-			(- (line-number-at-pos start) 2) ?\n))))
-	   (block-param (save-excursion
-			  (goto-char start)
-			  (progn
-			    (python-util-forward-comment 1)
-			    (list (current-indentation)
-				  (/= (point) start)))))
-	   (block-indentation (car block-param))
-	   (starts-with-indentation-p (cadr block-param)))
+			(- (line-number-at-pos start) 2) ?\n)))))
       (with-temp-buffer
 	(python-mode)
-	(if fillstr (insert fillstr))
-	(when (and (> block-indentation 0) (not starts-with-indentation-p))
-	  (insert (make-string block-indentation ?\s)))
+	(when fillstr
+	  (insert fillstr))
 	(insert substring)
 	(goto-char (point-min))
-	(when (> block-indentation 0)
+	(when (not toplevel-p)
 	  (insert "if True:")
 	  (delete-region (point) (line-end-position)))
 	(when nomain
