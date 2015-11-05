@@ -54,6 +54,10 @@
 ;;   otherwise revert to the current fold or section.
 ;; - `python-shell-print-region-or-symbol': evaluate and print the current
 ;;   region or symbol at point, displaying the inferior process output.
+;; - `python-shell-display-shell': Display the inferior Python process output
+;;   in another window.
+;; - `python-nav-forward-fold-or-section': Move forward by fold/sections.
+;; - `python-nav-backward-fold-or-section': Move backward by fold/sections.
 ;;
 ;; python-x uses `volatile-highlights', when available, for highlighting
 ;; multi-line blocks. Installation through "melpa" is recommended (you don't
@@ -77,6 +81,8 @@
 ;;     (define-key python-mode-map (kbd "C-c C-f") 'python-shell-send-defun)
 ;;     (define-key python-mode-map (kbd "C-c C-b") 'python-shell-send-buffer)
 ;;     (define-key python-mode-map (kbd "C-c C-c") 'python-shell-send-dwim)
+;;     (define-key python-mode-map (kbd "M-<up>") 'python-nav-backward-fold-or-section)
+;;     (define-key python-mode-map (kbd "M-<down>") 'python-nav-forward-fold-or-section)
 ;;     (define-key python-mode-map (kbd "C-c p") 'python-shell-print-region-or-symbol)))
 
 
@@ -286,7 +292,7 @@ highlight is not set if spanning a single line or the entire visible region."
 	  (python-shell-send-string stm)))))
 
 
-;; Motion by lines
+;; Send with motion, by lines
 
 ;;;###autoload
 (defun python-shell-send-line ()
@@ -306,7 +312,7 @@ statement."
 					t nil))
 
 
-;; Motion by paragraphs
+;; Send with motion, by paragraphs
 
 ;;;###autoload
 (defun python-shell-send-paragraph ()
@@ -365,6 +371,9 @@ spanning more than one line, highlight temporarily the evaluated region using
 	   (return pos))))
 
 (defun python-section-search (rev)
+  (unless folding-regexp
+    ;; define folding markers, even when folding-mode is not active
+    (folding-set-local-variables))
   (let ((ret (folding-skip-folds rev)))
     (let ((pos (or (car-safe ret)
 		   (if rev (point-min) (point-max))))
@@ -399,9 +408,6 @@ When the region to be evaluated is longer than a single line and less than a
 screenful, the region is temporarily highlighted according to
 `python-section-highlight'."
   (interactive)
-  (unless folding-regexp
-    ;; define folding markers, even when folding-mode is not active
-    (folding-set-local-variables))
   (let ((start (python-section-search t))
 	(end (python-section-search nil)))
     (when python-section-highlight
@@ -416,6 +422,25 @@ Otherwise, use `python-shell-send-current-fold-or-section'"
   (if (use-region-p)
       (python-shell-send-region (region-beginning) (region-end))
       (python-shell-send-fold-or-section)))
+
+
+(defun python-nav-forward-fold-or-section (count &optional rev)
+  "Move the point forward to the next fold or section marker. When a prefix
+argument is provided, move COUNT times forward."
+  (interactive "p")
+  (catch 'end
+    (dotimes (i count)
+      (forward-line (if rev -1))
+      (let ((pos (python-section-search rev)))
+	(when (eq pos (point))
+	  (throw 'end nil))
+	(goto-char pos)))))
+
+(defun python-nav-backward-fold-or-section (count)
+  "Move the point backward to the previous fold or section marker. When a
+prefix argument is provided, move COUNT times backward."
+  (interactive "p")
+  (python-nav-forward-fold-or-section count t))
 
 
 ;; Exception handling
