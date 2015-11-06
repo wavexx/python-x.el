@@ -3,7 +3,7 @@
 ;; Author: Yuri D'Elia <wavexx@thregr.org>
 ;; Version: 1.0
 ;; URL: https://github.com/wavexx/python-x.el
-;; Package-Requires: ((python "0.24") (folding "0"))
+;; Package-Requires: ((python "0.24") (folding "0") (cl-lib "0.5"))
 ;; Keywords: python, eval, folding
 
 ;; This file is NOT part of GNU Emacs.
@@ -89,6 +89,7 @@
 ;;; Code:
 (require 'python)
 (require 'folding)
+(require 'cl-lib)
 
 ;; Patch some buggy definitions in python.el, for which we need internal symbols
 (when (version< emacs-version "25.1")
@@ -364,11 +365,11 @@ spanning more than one line, highlight temporarily the evaluated region using
 	    (python-section--in-skiplist pos (cddr skip))))))
 
 (defun python-section--search-skiplist (fn skip)
-  (loop for pos = (funcall fn python-section-delimiter nil t)
+  (cl-loop for pos = (funcall fn python-section-delimiter nil t)
      while pos do
        (setq pos (match-beginning 0))
        (if (not (python-section--in-skiplist pos skip))
-	   (return pos))))
+	   (cl-return pos))))
 
 (defun python-section-search (rev)
   (unless folding-regexp
