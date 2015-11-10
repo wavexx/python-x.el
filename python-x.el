@@ -58,6 +58,7 @@
 ;;   in another window.
 ;; - `python-nav-forward-fold-or-section': Move forward by fold/sections.
 ;; - `python-nav-backward-fold-or-section': Move backward by fold/sections.
+;; - `python-mark-fold-or-section': Mark current fold or section.
 ;;
 ;; python-x uses `volatile-highlights', when available, for highlighting
 ;; multi-line blocks. Installation through "melpa" is recommended (you don't
@@ -436,14 +437,14 @@ Otherwise, use `python-shell-send-current-fold-or-section'"
 
 
 ;;;###autoload
-(defun python-nav-forward-fold-or-section (count &optional rev)
+(defun python-nav-forward-fold-or-section (count)
   "Move the point forward to the next fold or section marker. When a prefix
 argument is provided, move COUNT times forward."
   (interactive "p")
   (catch 'end
-    (dotimes (i count)
-      (forward-line (if rev -1))
-      (let ((pos (python-section-search rev)))
+    (dotimes (i (abs count))
+      (forward-line (if (> count 0) 1 -1))
+      (let ((pos (python-section-search (< count 0))))
 	(when (eq pos (point))
 	  (throw 'end nil))
 	(goto-char pos)))))
@@ -453,7 +454,46 @@ argument is provided, move COUNT times forward."
   "Move the point backward to the previous fold or section marker. When a
 prefix argument is provided, move COUNT times backward."
   (interactive "p")
-  (python-nav-forward-fold-or-section count t))
+  (python-nav-forward-fold-or-section (- count)))
+
+;;;###autoload
+(defun python-mark-fold-or-section (&optional arg allow-extend)
+  "Put point at beginning of this fold/section, mark at end.
+The region marked is the one that contains point or follows point.
+
+With argument ARG, puts mark at end of a following fold/section, so that the
+number of sections marked equals ARG.
+
+If ARG is negative, point is put at end of this fold/section, mark is put at
+beginning of this or a previous paragraph.
+
+Interactively (or if ALLOW-EXTEND is non-nil), if this command is repeated
+or (in Transient Mark mode) if the mark is active, it marks the next ARG
+sections after the ones already marked."
+  (interactive "p\np")
+  (unless arg (setq arg 1))
+  (when (zerop arg)
+    (error "Cannot mark zero sections"))
+  (cond ((and allow-extend
+	      (or (and (eq last-command this-command) (mark t))
+		  (and transient-mark-mode mark-active)))
+	 (set-mark
+	  (save-excursion
+	    (goto-char (mark))
+	    (python-nav-forward-fold-or-section arg)
+	    (point))))
+	(t
+	 (python-nav-forward-fold-or-section arg)
+	 (push-mark nil t t)
+	 (python-nav-backward-fold-or-section arg))))
+
+(when (featurep 'expand-region)
+  (er/enable-mode-expansions
+   'python-mode
+   (lambda ()
+     (make-variable-buffer-local 'er/try-expand-list)
+     (add-to-list 'er/try-expand-list 'python-mark-fold-or-section t))))
+
 
 
 ;; Exception handling
