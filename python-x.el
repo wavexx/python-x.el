@@ -375,7 +375,8 @@ spanning more than one line, highlight temporarily the evaluated region using
   (unless folding-regexp
     ;; define folding markers, even when folding-mode is not active
     (folding-set-local-variables))
-  (let ((ret (folding-skip-folds rev)))
+  (let ((case-fold-search nil)
+	(ret (folding-skip-folds rev)))
     (let ((pos (or (car-safe ret)
 		   (if rev (point-min) (point-max))))
 	  (skip (cdr-safe ret)))
