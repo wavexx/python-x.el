@@ -437,10 +437,11 @@ Otherwise, use `python-shell-send-current-fold-or-section'"
 
 
 ;;;###autoload
-(defun python-nav-forward-fold-or-section (count)
+(defun python-nav-forward-fold-or-section (&optional count)
   "Move the point forward to the next fold or section marker. When a prefix
 argument is provided, move COUNT times forward."
   (interactive "p")
+  (unless count (setq count 1))
   (catch 'end
     (dotimes (i (abs count))
       (forward-line (if (> count 0) 1 -1))
@@ -450,10 +451,11 @@ argument is provided, move COUNT times forward."
 	(goto-char pos)))))
 
 ;;;###autoload
-(defun python-nav-backward-fold-or-section (count)
+(defun python-nav-backward-fold-or-section (&optional count)
   "Move the point backward to the previous fold or section marker. When a
 prefix argument is provided, move COUNT times backward."
   (interactive "p")
+  (unless count (setq count 1))
   (python-nav-forward-fold-or-section (- count)))
 
 ;;;###autoload
