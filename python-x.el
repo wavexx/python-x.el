@@ -91,6 +91,8 @@
 (require 'python)
 (require 'folding)
 (require 'cl-lib)
+(require 'expand-region nil t)
+(require 'volatile-highlights nil t)
 
 ;; Patch some buggy definitions in python.el, for which we need internal symbols
 (when (version< emacs-version "25.1")
@@ -242,10 +244,7 @@ statement for display purposes"
   (replace-regexp-in-string "\\s *\\\\\n\\s *" " " string))
 
 ;;;###autoload
-(defvar python--vhl-available (if (require 'volatile-highlights nil t) t))
-
-;;;###autoload
-(defcustom python-multiline-highlight python--vhl-available
+(defcustom python-multiline-highlight (featurep 'volatile-highlights)
   "When evaluating a statement which spans more than one line and less than a
 screenful, highlight temporarily the evaluated region using `vhl/default-face'.
 Requires `volatile-highlights' to be installed."
@@ -351,7 +350,7 @@ See `python-shell-send-fold-or-section'."
   :group 'python-x)
 
 ;;;###autoload
-(defcustom python-section-highlight python--vhl-available
+(defcustom python-section-highlight (featurep 'volatile-highlights)
   "When evaluating a code fold/section with `python-shell-send-fold-or-section'
 spanning more than one line, highlight temporarily the evaluated region using
 `vhl/default-face'. Requires `volatile-highlights' to be installed."
