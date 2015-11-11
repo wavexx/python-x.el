@@ -41,11 +41,7 @@
 ;; The following functions are introduced:
 ;; - `python-shell-send-line': evaluate and print the current line, accounting
 ;;   for statement and line continuations.
-;; - `python-shell-send-line-and-step': evaluate and current line as above,
-;;   then move the point to the next automatically.
 ;; - `python-shell-send-paragraph': evaluate the current paragraph.
-;; - `python-shell-send-paragraph-and-step': evaluate the current paragraph,
-;;   then move the point to the next automatically.
 ;; - `python-shell-send-region-or-paragraph': evaluate the current region when
 ;;   active, otherwise evaluate the current paragraph.
 ;; - `python-shell-send-fold-or-section': evaluate the region defined by the
@@ -56,43 +52,39 @@
 ;;   region or symbol at point, displaying the inferior process output.
 ;; - `python-shell-display-shell': Display the inferior Python process output
 ;;   in another window.
-;; - `python-nav-forward-fold-or-section': Move forward by fold/sections.
-;; - `python-nav-backward-fold-or-section': Move backward by fold/sections.
+;; - `python-forward-fold-or-section': Move forward by fold/sections.
+;; - `python-backward-fold-or-section': Move backward by fold/sections.
 ;; - `python-mark-fold-or-section': Mark current fold or section.
+;;
+;; All "python-shell-send-*" functions are also provided in a "*-and-step"
+;; variant that moves the point after evaluation.
 ;;
 ;; python-x uses `volatile-highlights', when available, for highlighting
 ;; multi-line blocks. Installation through "melpa" is recommended (you don't
 ;; actually need to enable `volatile-highlights-mode' itself). python-x also
-;; uses `folding' to interpret and define folding marks. `folding-mode' needs
-;; to be enabled manually if code folding is also desired.
+;; uses `folding' to interpret and define folding marks. Again, `folding-mode'
+;; needs to be enabled manually if code folding is also desired.
+;; `expand-region' is equally supported, when previously loaded.
 ;;
-;; Read through the Usage section in the source file for usage instructions and
-;; recommended keybindings.
-
-;;; Usage:
-
-;; Add the following to your .emacs to load 'python-x on-demand:
+;; To automatically setup python-x with an ESS-like keyboard map, use
+;; `python-x-setup' in your emacs startup:
 ;;
-;; (eval-after-load 'python
-;;   (lambda ()
-;;     (require 'python-x)
-;;     ;; Suggested keybindings (ESS-like)
-;;     (define-key python-mode-map (kbd "C-c C-j") 'python-shell-send-line)
-;;     (define-key python-mode-map (kbd "C-c C-n") 'python-shell-send-line-and-step)
-;;     (define-key python-mode-map (kbd "C-c C-f") 'python-shell-send-defun)
-;;     (define-key python-mode-map (kbd "C-c C-b") 'python-shell-send-buffer)
-;;     (define-key python-mode-map (kbd "C-c C-c") 'python-shell-send-dwim)
-;;     (define-key python-mode-map (kbd "M-<up>") 'python-nav-backward-fold-or-section)
-;;     (define-key python-mode-map (kbd "M-<down>") 'python-nav-forward-fold-or-section)
-;;     (define-key python-mode-map (kbd "C-c p") 'python-shell-print-region-or-symbol)))
+;; (python-x-setup)
+;;
+;; The keyboard map definition is currently tuned to the author's taste, and
+;; may change over time. You are encouraged to look at the definition of
+;; `python-x-setup' and derive your own.
 
 
 ;;; Code:
 (require 'python)
 (require 'folding)
 (require 'cl-lib)
-(require 'expand-region nil t)
+
+;; Optional
 (require 'volatile-highlights nil t)
+(eval-when-compile
+  (require 'expand-region nil t))
 
 ;; Patch some buggy definitions in python.el, for which we need internal symbols
 (when (version< emacs-version "25.1")
@@ -300,7 +292,8 @@ highlight is not set if spanning a single line or the entire visible region."
   "Send the current line (with any remaining continuations) to the inferior Python process,
 printing the result of the expression on the shell."
   (interactive)
-  (python-shell--send-block-with-motion 'python-nav-beginning-of-statement 'python-nav-end-of-statement
+  (python-shell--send-block-with-motion 'python-nav-beginning-of-statement
+					'python-nav-end-of-statement
 					nil nil))
 
 ;;;###autoload
@@ -309,7 +302,8 @@ printing the result of the expression on the shell."
 printing the result of the expression on the shell, then move on to the next
 statement."
   (interactive)
-  (python-shell--send-block-with-motion 'python-nav-beginning-of-statement 'python-nav-end-of-statement
+  (python-shell--send-block-with-motion 'python-nav-beginning-of-statement
+					'python-nav-end-of-statement
 					t nil))
 
 
@@ -431,7 +425,7 @@ screenful, the region is temporarily highlighted according to
 current fold or buffer boundaries, then move on to the next."
   (interactive)
   (python-shell-send-fold-or-section)
-  (python-nav-forward-fold-or-section))
+  (python-forward-fold-or-section))
 
 ;;;###autoload
 (defun python-shell-send-dwim ()
@@ -442,9 +436,8 @@ Otherwise, use `python-shell-send-current-fold-or-section'"
       (python-shell-send-region (region-beginning) (region-end))
       (python-shell-send-fold-or-section)))
 
-
 ;;;###autoload
-(defun python-nav-forward-fold-or-section (&optional count)
+(defun python-forward-fold-or-section (&optional count)
   "Move the point forward to the next fold or section marker. When a prefix
 argument is provided, move COUNT times forward."
   (interactive "p")
@@ -458,12 +451,12 @@ argument is provided, move COUNT times forward."
 	(goto-char pos)))))
 
 ;;;###autoload
-(defun python-nav-backward-fold-or-section (&optional count)
+(defun python-backward-fold-or-section (&optional count)
   "Move the point backward to the previous fold or section marker. When a
 prefix argument is provided, move COUNT times backward."
   (interactive "p")
   (unless count (setq count 1))
-  (python-nav-forward-fold-or-section (- count)))
+  (python-forward-fold-or-section (- count)))
 
 ;;;###autoload
 (defun python-mark-fold-or-section (&optional arg allow-extend)
@@ -489,20 +482,12 @@ sections after the ones already marked."
 	 (set-mark
 	  (save-excursion
 	    (goto-char (mark))
-	    (python-nav-forward-fold-or-section arg)
+	    (python-forward-fold-or-section arg)
 	    (point))))
 	(t
-	 (python-nav-forward-fold-or-section arg)
+	 (python-forward-fold-or-section arg)
 	 (push-mark nil t t)
-	 (python-nav-backward-fold-or-section arg))))
-
-(when (featurep 'expand-region)
-  (er/enable-mode-expansions
-   'python-mode
-   (lambda ()
-     (make-variable-buffer-local 'er/try-expand-list)
-     (add-to-list 'er/try-expand-list 'python-mark-fold-or-section t))))
-
+	 (python-backward-fold-or-section arg))))
 
 
 ;; Exception handling
@@ -562,6 +547,30 @@ the send the symbol at point. Print and display the result on the output buffer.
     (python-shell-send-string stm)
     (python-shell-display-shell)))
 
+
+;; Configuration and setup
+
+(defun python-x-mode-expansions ()
+  "Add `python-x' specific expansions for `expand-region'"
+  (set (make-local-variable 'er/try-expand-list)
+    (append er/try-expand-list '(python-mark-fold-or-section))))
+
+;;;###autoload
+(defun python-x-setup ()
+  "Setup an ESS-like keyboard map in python-mode"
+  (define-key python-mode-map (kbd "C-c C-j") 'python-shell-send-line)
+  (define-key python-mode-map (kbd "C-c C-n") 'python-shell-send-line-and-step)
+  (define-key python-mode-map (kbd "C-c C-f") 'python-shell-send-defun)
+  (define-key python-mode-map (kbd "C-c C-b") 'python-shell-send-buffer)
+  (define-key python-mode-map (kbd "C-c C-c") 'python-shell-send-dwim)
+  (define-key python-mode-map (kbd "C-c C-z") 'python-shell-switch-to-shell)
+  (define-key python-mode-map (kbd "C-c C-S-z") 'python-shell-display-shell)
+  (define-key python-mode-map (kbd "M-<up>") 'python-backward-fold-or-section)
+  (define-key python-mode-map (kbd "M-<down>") 'python-forward-fold-or-section)
+  (define-key python-mode-map (kbd "M-<return>") 'python-shell-send-fold-or-section-and-step)
+  (define-key python-mode-map (kbd "C-c p p") 'python-shell-print-region-or-symbol)
+  (when (featurep 'expand-region)
+    (er/enable-mode-expansions 'python-mode 'python-x-mode-expansions)))
 
 (provide 'python-x)
 
