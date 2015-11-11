@@ -426,6 +426,14 @@ screenful, the region is temporarily highlighted according to
     (python-shell-send-region start end)))
 
 ;;;###autoload
+(defun python-shell-send-fold-or-section-and-step ()
+  "Send the section of code at point to the inferior Python process, up to the
+current fold or buffer boundaries, then move on to the next."
+  (interactive)
+  (python-shell-send-fold-or-section)
+  (python-nav-forward-fold-or-section))
+
+;;;###autoload
 (defun python-shell-send-dwim ()
   "Send the current region to the inferior Python process, if active.
 Otherwise, use `python-shell-send-current-fold-or-section'"
