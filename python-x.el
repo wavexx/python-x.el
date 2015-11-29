@@ -1,4 +1,4 @@
-;;; python-x.el --- python.el extras for interactive evaluation
+;;; python-x.el --- python.el extras for interactive evaluation -*- lexical-binding: t -*-
 
 ;; Author: Yuri D'Elia <wavexx@thregr.org>
 ;; Version: 1.0
@@ -55,6 +55,10 @@
 ;; - `python-forward-fold-or-section': Move forward by fold/sections.
 ;; - `python-backward-fold-or-section': Move backward by fold/sections.
 ;; - `python-mark-fold-or-section': Mark current fold or section.
+;; - `python-eldoc-for-region-or-symbol': Summary help for the active
+;;   region or symbol at point.
+;; - `python-help-for-region-or-symbol': Display full help for the active
+;;   region or symbol at point.
 ;;
 ;; All "python-shell-send-*" functions are also provided in a "*-and-step"
 ;; variant that moves the point after evaluation.
@@ -527,6 +531,42 @@ exception. By default, simply call `display-buffer' according to
 		      'python-comint-find-exceptions)))
 
 
+;; ElDoc/Help
+(define-derived-mode python-help-mode special-mode "Python Help")
+
+;;;###autoload
+(defun python-eldoc-for-region-or-symbol ()
+  "ElDoc for the current region or symbol at point. Similar to
+`python-eldoc-at-point', but never prompts."
+  (interactive)
+  (let* ((substring (if (use-region-p)
+			(buffer-substring-no-properties (region-beginning) (region-end))
+			(python-info-current-symbol)))
+	 (stm (python-string-to-statement substring)))
+    (python-eldoc-at-point stm)))
+
+;;;###autoload
+(defun python-help-for-region-or-symbol ()
+  "Display documentation for the current region or symbol at point."
+  (interactive)
+  (let* ((substring (if (use-region-p)
+			(buffer-substring-no-properties (region-beginning) (region-end))
+			(python-info-current-symbol)))
+	 (stm (python-string-to-statement substring)))
+    (let ((buffer (get-buffer-create "*help[Python]*"))
+	  (output (python-shell-send-string-no-output (concat "help(" stm ")"))))
+      (with-current-buffer buffer
+	;; TODO: this is *very* rough
+	(setq buffer-read-only nil)
+	(buffer-disable-undo)
+	(delete-region (point-min) (point-max))
+	(insert output)
+	(set-buffer-modified-p 'nil)
+	(goto-char (point-min))
+	(python-help-mode))
+      (display-buffer buffer))))
+
+
 ;; Utilities
 
 ;;;###autoload
@@ -542,7 +582,7 @@ the send the symbol at point. Print and display the result on the output buffer.
   (interactive)
   (let* ((substring (if (use-region-p)
 			(buffer-substring-no-properties (region-beginning) (region-end))
-			(symbol-name (symbol-at-point))))
+			(python-info-current-symbol)))
 	 (stm (python-string-to-statement substring)))
     (python-shell-send-string stm)
     (python-shell-display-shell)))
@@ -568,7 +608,9 @@ the send the symbol at point. Print and display the result on the output buffer.
   (define-key python-mode-map (kbd "M-<up>") 'python-backward-fold-or-section)
   (define-key python-mode-map (kbd "M-<down>") 'python-forward-fold-or-section)
   (define-key python-mode-map (kbd "M-<return>") 'python-shell-send-fold-or-section-and-step)
+  (define-key python-mode-map (kbd "C-c C-h") 'python-eldoc-for-region-or-symbol)
   (define-key python-mode-map (kbd "C-c p p") 'python-shell-print-region-or-symbol)
+  (define-key python-mode-map (kbd "C-c p h") 'python-help-for-region-or-symbol)
   (when (featurep 'expand-region)
     (er/enable-mode-expansions 'python-mode 'python-x-mode-expansions)))
 
