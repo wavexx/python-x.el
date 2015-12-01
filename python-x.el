@@ -533,7 +533,10 @@ exception. By default, simply call `display-buffer' according to
 
 ;; ElDoc/Help
 
-(define-derived-mode python-help-mode special-mode "Python Help")
+(define-derived-mode
+    python-help-mode special-mode "Python Help"
+    (setq truncate-lines nil
+	  word-wrap t))
 
 ;;;###autoload
 (defun python-eldoc-for-region-or-symbol (stm)
