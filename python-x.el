@@ -532,39 +532,47 @@ exception. By default, simply call `display-buffer' according to
 
 
 ;; ElDoc/Help
+
 (define-derived-mode python-help-mode special-mode "Python Help")
 
 ;;;###autoload
-(defun python-eldoc-for-region-or-symbol ()
+(defun python-eldoc-for-region-or-symbol (stm)
   "ElDoc for the current region or symbol at point. Similar to
-`python-eldoc-at-point', but never prompts."
-  (interactive)
-  (let* ((substring (if (use-region-p)
-			(buffer-substring-no-properties (region-beginning) (region-end))
-			(python-info-current-symbol)))
-	 (stm (python-string-to-statement substring)))
-    (python-eldoc-at-point stm)))
+`python-eldoc-at-point', but doesn't prompt unless given a prefix argument."
+  (interactive
+   (let* ((substring (if (use-region-p)
+			 (buffer-substring-no-properties (region-beginning) (region-end))
+			 (python-info-current-symbol)))
+	  (stm (python-string-to-statement substring)))
+     (list (if current-prefix-arg
+	       (read-string "ElDoc for: " stm t)
+	       stm))))
+    (python-eldoc-at-point stm))
 
 ;;;###autoload
-(defun python-help-for-region-or-symbol ()
-  "Display documentation for the current region or symbol at point."
-  (interactive)
-  (let* ((substring (if (use-region-p)
-			(buffer-substring-no-properties (region-beginning) (region-end))
-			(python-info-current-symbol)))
-	 (stm (python-string-to-statement substring)))
-    (let ((buffer (get-buffer-create "*help[Python]*"))
-	  (output (python-shell-send-string-no-output (concat "help(" stm ")"))))
-      (with-current-buffer buffer
-	;; TODO: this is *very* rough
-	(setq buffer-read-only nil)
-	(buffer-disable-undo)
-	(delete-region (point-min) (point-max))
-	(insert output)
-	(set-buffer-modified-p 'nil)
-	(goto-char (point-min))
-	(python-help-mode))
-      (display-buffer buffer))))
+(defun python-help-for-region-or-symbol (stm)
+  "Display documentation for the current region or symbol at point. If a prefix
+argument is given, prompt for a statement to inspect."
+  (interactive
+   (let* ((substring (if (use-region-p)
+			 (buffer-substring-no-properties (region-beginning) (region-end))
+			 (python-info-current-symbol)))
+	  (stm (python-string-to-statement substring)))
+     (list (if current-prefix-arg
+	       (read-string "Help for: " stm t)
+	       stm))))
+  (let ((buffer (get-buffer-create "*help[Python]*"))
+	(output (python-shell-send-string-no-output (concat "help(" stm ")"))))
+    (with-current-buffer buffer
+      ;; TODO: this is *very* rough
+      (setq buffer-read-only nil)
+      (buffer-disable-undo)
+      (delete-region (point-min) (point-max))
+      (insert output)
+      (set-buffer-modified-p 'nil)
+      (goto-char (point-min))
+      (python-help-mode))
+    (display-buffer buffer)))
 
 
 ;; Utilities
