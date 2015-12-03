@@ -285,8 +285,8 @@ highlight is not set if spanning a single line or the entire visible region."
     (if as-region
 	(python-shell-send-region start end)
 	(let* ((substring (buffer-substring-no-properties start end))
-	       (stm (python-string-to-statement substring)))
-	  (python-shell-send-string stm)))))
+	       (string (python-string-to-statement substring)))
+	  (python-shell-send-string string)))))
 
 
 ;; Send with motion, by lines
@@ -518,17 +518,34 @@ exception. By default, simply call `display-buffer' according to
 		 "\\|") "\\)")
   "Regular expression used to search for exceptions in the output")
 
-(defun python-comint-find-exceptions (output)
+(defun python-comint--find-exceptions (output)
   (save-excursion
     (goto-char (point-max))
     (when (re-search-backward python-comint-exceptions-regex
 			      comint-last-output-start t)
       (funcall python-shell-show-exception-function (current-buffer)))))
 
-(add-hook 'inferior-python-mode-hook
-	  (lambda ()
-	    (add-hook 'comint-output-filter-functions
-		      'python-comint-find-exceptions)))
+(defun python-comint--input-send (proc string)
+  (let ((inhibit-send nil))
+    (when (string-match (python-rx line-start (* whitespace)
+				   (group symbol-name) (* whitespace)
+				   (group "(" (* whitespace) (+ any) (* whitespace) ")")
+				   (* whitespace) line-end)
+			string)
+      ;; function call
+      (let ((func (match-string-no-properties 1 string))
+	    (args (match-string-no-properties 2 string)))
+	(when (string-equal func "help")
+	  (setq inhibit-send t)
+	  (python-help--display-for-string args proc))))
+    (comint-simple-send proc (if inhibit-send "" string))))
+
+(defun python-x--comint-setup ()
+  (add-hook 'comint-output-filter-functions
+	    'python-comint--find-exceptions)
+  (setq-local comint-input-sender 'python-comint--input-send))
+
+(add-hook 'inferior-python-mode-hook 'python-x--comint-setup)
 
 
 ;; ElDoc/Help
@@ -539,33 +556,22 @@ exception. By default, simply call `display-buffer' according to
 	  word-wrap t))
 
 ;;;###autoload
-(defun python-eldoc-for-region-or-symbol (stm)
+(defun python-eldoc-for-region-or-symbol (string)
   "ElDoc for the current region or symbol at point. Similar to
 `python-eldoc-at-point', but doesn't prompt unless given a prefix argument."
   (interactive
    (let* ((substring (if (use-region-p)
 			 (buffer-substring-no-properties (region-beginning) (region-end))
 			 (python-info-current-symbol)))
-	  (stm (python-string-to-statement substring)))
+	  (string (python-string-to-statement substring)))
      (list (if current-prefix-arg
-	       (read-string "ElDoc for: " stm t)
-	       stm))))
-    (python-eldoc-at-point stm))
+	       (read-string "ElDoc for: " string t)
+	       string))))
+    (python-eldoc-at-point string))
 
-;;;###autoload
-(defun python-help-for-region-or-symbol (stm)
-  "Display documentation for the current region or symbol at point. If a prefix
-argument is given, prompt for a statement to inspect."
-  (interactive
-   (let* ((substring (if (use-region-p)
-			 (buffer-substring-no-properties (region-beginning) (region-end))
-			 (python-info-current-symbol)))
-	  (stm (python-string-to-statement substring)))
-     (list (if current-prefix-arg
-	       (read-string "Help for: " stm t)
-	       stm))))
+(defun python-help--display-for-string (string &optional proc)
   (let ((buffer (get-buffer-create "*help[Python]*"))
-	(output (python-shell-send-string-no-output (concat "help(" stm ")"))))
+	(output (python-shell-send-string-no-output (concat "help(" string ")") proc)))
     (with-current-buffer buffer
       ;; TODO: this is *very* rough
       (setq buffer-read-only nil)
@@ -576,6 +582,20 @@ argument is given, prompt for a statement to inspect."
       (goto-char (point-min))
       (python-help-mode))
     (display-buffer buffer)))
+
+;;;###autoload
+(defun python-help-for-region-or-symbol (string)
+  "Display documentation for the current region or symbol at point. If a prefix
+argument is given, prompt for a statement to inspect."
+  (interactive
+   (let* ((substring (if (use-region-p)
+			 (buffer-substring-no-properties (region-beginning) (region-end))
+			 (python-info-current-symbol)))
+	  (string (python-string-to-statement substring)))
+     (list (if current-prefix-arg
+	       (read-string "Help for: " string t)
+	       string))))
+  (python-help--display-for-string string))
 
 
 ;; Utilities
@@ -594,8 +614,8 @@ the send the symbol at point. Print and display the result on the output buffer.
   (let* ((substring (if (use-region-p)
 			(buffer-substring-no-properties (region-beginning) (region-end))
 			(python-info-current-symbol)))
-	 (stm (python-string-to-statement substring)))
-    (python-shell-send-string stm)
+	 (string (python-string-to-statement substring)))
+    (python-shell-send-string string)
     (python-shell-display-shell)))
 
 
