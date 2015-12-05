@@ -1,10 +1,6 @@
-;;; python-x.el --- python.el extras for interactive evaluation -*- lexical-binding: t -*-
+;;; python-x.el --- python.el extras for interactive evaluation  -*- lexical-binding: t -*-
 
 ;; Author: Yuri D'Elia <wavexx@thregr.org>
-;; Version: 1.0
-;; URL: https://github.com/wavexx/python-x.el
-;; Package-Requires: ((python "0.24") (folding "0") (cl-lib "0.5"))
-;; Keywords: python, eval, folding
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -550,11 +546,6 @@ exception. By default, simply call `display-buffer' according to
 
 ;; ElDoc/Help
 
-(define-derived-mode
-    python-help-mode special-mode "Python Help"
-    (setq truncate-lines nil
-	  word-wrap t))
-
 ;;;###autoload
 (defun python-eldoc-for-region-or-symbol (string)
   "ElDoc for the current region or symbol at point. Similar to
@@ -573,7 +564,6 @@ exception. By default, simply call `display-buffer' according to
   (let ((buffer (get-buffer-create "*help[Python]*"))
 	(output (python-shell-send-string-no-output (concat "help(" string ")") proc)))
     (with-current-buffer buffer
-      ;; TODO: this is *very* rough
       (setq buffer-read-only nil)
       (buffer-disable-undo)
       (delete-region (point-min) (point-max))
