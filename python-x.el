@@ -565,7 +565,6 @@ exception. By default, simply call `display-buffer' according to
 	(output (python-shell-send-string-no-output (concat "help(" string ")") proc)))
     (with-current-buffer buffer
       (setq buffer-read-only nil)
-      (buffer-disable-undo)
       (delete-region (point-min) (point-max))
       (insert output)
       (set-buffer-modified-p 'nil)
