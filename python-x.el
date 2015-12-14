@@ -567,7 +567,6 @@ exception. By default, simply call `display-buffer' according to
       (setq buffer-read-only nil)
       (delete-region (point-min) (point-max))
       (insert output)
-      (set-buffer-modified-p 'nil)
       (goto-char (point-min))
       (python-help-mode))
     (display-buffer buffer)))

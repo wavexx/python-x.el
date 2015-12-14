@@ -8,7 +8,7 @@
       ("\\<\\([[:word:]_.]+\\) object:$" nil nil (1 'font-lock-type-face))
       ("\\<in \\([[:word:]_.]+\\):$" nil nil (1 'font-lock-type-face)))
      ;; Sections
-     ("^[A-Z][A-Z ]+[A-Z]" 0 'info-title-4)
+     ("^[A-Z][A-Z ]+[A-Z]$" 0 'info-title-4)
      ;; Functions (with args)
      ("^ *\\(?:|  \\)*\\(?:[[:word:]_.]+ = \\)?\\([[:word:]_.]+\\)("
       (1 'font-lock-function-name-face)
