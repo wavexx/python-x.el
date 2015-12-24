@@ -82,7 +82,6 @@
 (require 'cl-lib)
 
 ;; Optional
-(require 'volatile-highlights nil t)
 (eval-when-compile
   (require 'expand-region nil t))
 
@@ -236,7 +235,10 @@ statement for display purposes"
   (replace-regexp-in-string "\\s *\\\\\n\\s *" " " string))
 
 ;;;###autoload
-(defcustom python-multiline-highlight (featurep 'volatile-highlights)
+(defconst python--vhl-available (if (require 'volatile-highlights nil t) t))
+
+;;;###autoload
+(defcustom python-multiline-highlight python--vhl-available
   "When evaluating a statement which spans more than one line and less than a
 screenful, highlight temporarily the evaluated region using `vhl/default-face'.
 Requires `volatile-highlights' to be installed."
@@ -344,7 +346,7 @@ See `python-shell-send-fold-or-section'."
   :group 'python-x)
 
 ;;;###autoload
-(defcustom python-section-highlight (featurep 'volatile-highlights)
+(defcustom python-section-highlight python--vhl-available
   "When evaluating a code fold/section with `python-shell-send-fold-or-section'
 spanning more than one line, highlight temporarily the evaluated region using
 `vhl/default-face'. Requires `volatile-highlights' to be installed."
