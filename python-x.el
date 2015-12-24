@@ -533,7 +533,8 @@ exception. By default, simply call `display-buffer' according to
       ;; function call
       (let ((func (match-string-no-properties 1 string))
 	    (args (match-string-no-properties 2 string)))
-	(when (string-equal func "help")
+	(when (and python-shell-capture-help
+		   (string-equal func "help"))
 	  (setq inhibit-send t)
 	  (python-help--display-for-string args proc))))
     (comint-simple-send proc (if inhibit-send "" string))))
@@ -547,6 +548,11 @@ exception. By default, simply call `display-buffer' according to
 
 
 ;; ElDoc/Help
+
+(defcustom python-shell-capture-help t
+  "When invoking help() from the prompt, capture the output into a regular *Help* buffer."
+  :type 'boolean
+  :group 'python-x)
 
 ;;;###autoload
 (defun python-eldoc-for-region-or-symbol (string)
