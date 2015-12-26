@@ -25,6 +25,8 @@
      ;; Specials
      ("^ *\\(?:|  \\)*\\(__\\w+__\\)" 1 'font-lock-function-name-face))))
 
+(defvar-local python-help--parent-proc nil)
+
 ;;;###autoload
 (define-derived-mode
     python-help-mode special-mode "Python Help"

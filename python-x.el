@@ -536,7 +536,7 @@ exception. By default, simply call `display-buffer' according to
 	(when (and python-shell-capture-help
 		   (string-equal func "help"))
 	  (setq inhibit-send t)
-	  (python-help--display-for-string args proc))))
+	  (python-help--display-for-string proc args))))
     (comint-simple-send proc (if inhibit-send "" string))))
 
 (defun python-x--comint-setup ()
@@ -570,7 +570,7 @@ exception. By default, simply call `display-buffer' according to
 	       string))))
     (python-eldoc-at-point string))
 
-(defun python-help--display-for-string (string &optional proc)
+(defun python-help--display-for-string (proc string)
   (let ((buffer (get-buffer-create "*help[Python]*"))
 	(output (python-shell-send-string-no-output (concat "help(" string ")") proc)))
     (with-current-buffer buffer
@@ -578,7 +578,8 @@ exception. By default, simply call `display-buffer' according to
       (delete-region (point-min) (point-max))
       (insert output)
       (goto-char (point-min))
-      (python-help-mode))
+      (python-help-mode)
+      (setq-local python-help--parent-proc proc))
     (display-buffer buffer)))
 
 ;;;###autoload
@@ -593,7 +594,7 @@ argument is given, prompt for a statement to inspect."
      (list (if current-prefix-arg
 	       (read-string "Help for: " string t)
 	       string))))
-  (python-help--display-for-string string))
+  (python-help--display-for-string (python-shell-get-process) string))
 
 
 ;; Utilities
