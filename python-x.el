@@ -542,6 +542,8 @@ exception. By default, simply call `display-buffer' according to
 (defun python-x--comint-setup ()
   (add-hook 'comint-output-filter-functions
 	    'python-comint--find-exceptions)
+  ;; python-shell--parent-buffer is (erroneusly) let-bound in python.el
+  (setq-local python-shell--parent-buffer python-shell--parent-buffer)
   (setq-local comint-input-sender 'python-comint--input-send))
 
 (add-hook 'inferior-python-mode-hook 'python-x--comint-setup)
@@ -602,6 +604,11 @@ argument is given, prompt for a statement to inspect."
   (interactive)
   (display-buffer (process-buffer (python-shell-get-process)) t))
 
+(defun python-shell-switch-to-buffer ()
+  "From an inferior process, switch back to parent Python buffer."
+  (interactive)
+  (pop-to-buffer python-shell--parent-buffer))
+
 ;;;###autoload
 (defun python-shell-print-region-or-symbol ()
   "Send the current region to the inferior Python process, if active; otherwise
@@ -638,6 +645,7 @@ the send the symbol at point. Print and display the result on the output buffer.
   (define-key python-mode-map (kbd "C-c C-h") 'python-eldoc-for-region-or-symbol)
   (define-key python-mode-map (kbd "C-c p p") 'python-shell-print-region-or-symbol)
   (define-key python-mode-map (kbd "C-c p h") 'python-help-for-region-or-symbol)
+  (define-key inferior-python-mode-map (kbd "C-c C-z") 'python-shell-switch-to-buffer)
   (when (featurep 'expand-region)
     (er/enable-mode-expansions 'python-mode 'python-x-mode-expansions)))
 
