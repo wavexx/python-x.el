@@ -18,10 +18,10 @@
       (1 'font-lock-variable-name-face)
       ("\\<True\\|False\\|None\\>" nil nil (0 'font-lock-keyword-face)))
      ;; Classes
-     ("^ *\\(?:|  \\)*\\(class\\) \\([[:word:]_.]+\\)(\\([[:word:]_.]+\\))"
+     ("^ *\\(?:|  \\)*\\(class\\) \\([[:word:]_.]+\\)("
       (1 'font-lock-keyword-face)
       (2 'font-lock-type-face)
-      (3 'font-lock-type-face))
+      ("\\([[:word:]_.]+\\)" nil nil (0 'font-lock-type-face)))
      ;; Specials
      ("^ *\\(?:|  \\)*\\(__\\w+__\\)" 1 'font-lock-function-name-face))))
 
