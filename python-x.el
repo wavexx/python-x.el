@@ -608,7 +608,9 @@ argument is given, prompt for a statement to inspect."
 (defun python-shell-switch-to-buffer ()
   "From an inferior process, switch back to parent Python buffer."
   (interactive)
-  (pop-to-buffer python-shell--parent-buffer))
+  (if python-shell--parent-buffer
+      (pop-to-buffer python-shell--parent-buffer)
+      (message "No associated Python buffer")))
 
 ;;;###autoload
 (defun python-shell-print-region-or-symbol ()
