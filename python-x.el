@@ -578,7 +578,8 @@ exception. By default, simply call `display-buffer' according to
 	     (python-comint--process-state-changed 'error))
 	   (setq python-comint--process-status 'error)
 	   (funcall python-shell-show-exception-function (current-buffer)))
-	  ((equal (comint-check-proc (current-buffer)) '(run stop))
+	  ((and (equal (comint-check-proc (current-buffer)) '(run stop))
+		(looking-back comint-prompt-regexp))
 	   ;; ready
 	   (with-current-buffer python-shell--parent-buffer
 	     (python-comint--process-state-changed 'ready))
@@ -598,6 +599,11 @@ exception. By default, simply call `display-buffer' according to
 		   (string-equal func "help"))
 	  (setq inhibit-send t)
 	  (python-help--display-for-string proc args))))
+
+    (setq python-comint--process-status 'running)
+    (with-current-buffer python-shell--parent-buffer
+      (python-comint--process-state-changed 'running))
+
     (comint-simple-send proc (if inhibit-send "" string))))
 
 (defun python-x--comint-setup ()
