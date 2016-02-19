@@ -26,12 +26,12 @@
 ;; to interactive code evaluation with an inferior Python process.
 ;;
 ;; python-x allows to evaluate code blocks using comments as delimiters (code
-;; "sections") or using arbitrarily nested folding marks. By default, a code
+;; "sections") or using arbitrarily nested folding marks.  By default, a code
 ;; section is delimited by comments starting with "# ---"; while folds are
 ;; defined by "# {{{" and "# }}}" (see `python-shell-send-fold-or-section').
 ;;
 ;; python-x installs an handler to show uncaught exceptions produced by
-;; interactive code evaluation by default. See `python-shell-show-exceptions'
+;; interactive code evaluation by default.  See `python-shell-show-exceptions'
 ;; to control this behavior.
 ;;
 ;; The following functions are introduced:
@@ -60,22 +60,23 @@
 ;; variant that moves the point after evaluation.
 ;;
 ;; python-x uses `volatile-highlights', when available, for highlighting
-;; multi-line blocks. Installation through "melpa" is recommended (you don't
+;; multi-line blocks.  Installation through "melpa" is recommended (you don't
 ;; actually need to enable `volatile-highlights-mode' itself). python-x also
-;; uses `folding' to interpret and define folding marks. Again, `folding-mode'
+;; uses `folding' to interpret and define folding marks.  Again, `folding-mode'
 ;; needs to be enabled manually if code folding is also desired.
 ;; `expand-region' is equally supported, when previously loaded.
 ;;
 ;; To automatically setup python-x with an ESS-like keyboard map, use
-;; `python-x-setup' in your emacs startup:
+;; `python-x-setup' in your Emacs startup:
 ;;
 ;; (python-x-setup)
 ;;
 ;; The keyboard map definition is currently tuned to the author's taste, and
-;; may change over time. You are encouraged to look at the definition of
+;; may change over time.  You are encouraged to look at the definition of
 ;; `python-x-setup' and derive your own.
 
 
+
 ;;; Code:
 (require 'python)
 (require 'folding)
@@ -227,11 +228,11 @@ the python shell:
 	(buffer-substring-no-properties (point-min) (point-max))))))
 
 
+
 ;; Verbose line evaluation/stepping
 
 (defun python-string-to-statement (string)
-  "Tweak the Python code string so that it can be evaluated as a single-line
-statement for display purposes"
+  "Tweak code STRING so that it can be evaluated as a single-line statement."
   (replace-regexp-in-string "\\s *\\\\\n\\s *" " " string))
 
 ;;;###autoload
@@ -239,15 +240,16 @@ statement for display purposes"
 
 ;;;###autoload
 (defcustom python-multiline-highlight python--vhl-available
-  "When evaluating a statement which spans more than one line and less than a
-screenful, highlight temporarily the evaluated region using `vhl/default-face'.
-Requires `volatile-highlights' to be installed."
+  "Highlight temporarily the evaluated region using `vhl/default-face'.
+When evaluating a statement which spans more than one line and
+less than.Requires `volatile-highlights' to be installed."
   :type 'boolean
   :group 'python-x)
 
 (defun python--vhl-full-lines (start end margin-top margin-bottom)
-  "Set a volatile highlight on the entire lines defined by start/end. The
-highlight is not set if spanning a single line or the entire visible region."
+  "Set a volatile highlight on the entire lines defined by START and END.
+The highlight is not set if spanning a single line or the entire
+visible region."
   (save-excursion
     (goto-char start)
     (unless (eq (point-min) start)
@@ -286,41 +288,40 @@ highlight is not set if spanning a single line or the entire visible region."
 	  (python-shell-send-string string)))))
 
 
+
 ;; Send with motion, by lines
 
 ;;;###autoload
 (defun python-shell-send-line ()
-  "Send the current line (with any remaining continuations) to the inferior Python process,
-printing the result of the expression on the shell."
+  "Send the current line (with continuations) and print results.
+Printing the result of the expression on the shell."
   (interactive)
   (python-shell--send-block-with-motion 'python-nav-beginning-of-statement
-					'python-nav-end-of-statement
-					nil nil))
+                                        'python-nav-end-of-statement
+                                        nil nil))
 
 ;;;###autoload
 (defun python-shell-send-line-and-step ()
-  "Send the current line (with any remaining continuations) to the inferior Python process,
-printing the result of the expression on the shell, then move on to the next
-statement."
+  "Send current line (with continuations), print the result and step."
   (interactive)
   (python-shell--send-block-with-motion 'python-nav-beginning-of-statement
-					'python-nav-end-of-statement
-					t nil))
+                                        'python-nav-end-of-statement
+                                        t nil))
 
 
+
 ;; Send with motion, by paragraphs
 
 ;;;###autoload
 (defun python-shell-send-paragraph ()
-  "Send the current paragraph to the inferior Python process"
+  "Send the current paragraph to the inferior Python process."
   (interactive)
   (python-shell--send-block-with-motion 'backward-paragraph 'forward-paragraph
-					nil t))
+                                        nil t))
 
 ;;;###autoload
 (defun python-shell-send-paragraph-and-step ()
-  "Send the current paragraph to the inferior Python process, then move on to
-the next."
+  "Send the current paragraph to and step to next paragraph."
   (interactive)
   (python-shell--send-block-with-motion 'backward-paragraph 'forward-paragraph
 					'forward-paragraph t))
@@ -335,6 +336,7 @@ Otherwise, send the current paragraph."
       (python-shell-send-paragraph)))
 
 
+
 ;; Delimited sections
 
 ;;;###autoload
@@ -346,9 +348,9 @@ See `python-shell-send-fold-or-section'."
 
 ;;;###autoload
 (defcustom python-section-highlight python--vhl-available
-  "When evaluating a code fold/section with `python-shell-send-fold-or-section'
-spanning more than one line, highlight temporarily the evaluated region using
-`vhl/default-face'. Requires `volatile-highlights' to be installed."
+  "Highlight temporarily the evaluated section using `vhl/default-face'.
+This variable applies to `python-shell-send-fold-or-section'.
+Requires `volatile-highlights' to be installed."
   :type 'boolean
   :group 'python-x)
 
@@ -395,24 +397,25 @@ spanning more than one line, highlight temporarily the evaluated region using
 
 ;;;###autoload
 (defun python-shell-send-fold-or-section ()
-  "Send the section of code at point to the inferior Python process, up to the
-current fold or buffer boundaries.
+  "Send fold, or section, or buffer.
 
-A code \"section\" is delimited in both directions, and in order, by:
+A code \"section\" is delimited in both directions, and in order,
+by:
 
-- The nearest section delimiter (see `python-section-delimiter') contained
-  within the current fold.
+- The nearest section delimiter (see `python-section-delimiter')
+  contained within the current fold.
 - The nearest fold delimiter (see `folding-mode-marks-alist').
 - The buffer boundaries.
 
-`folding-mode' doesn't need to be enabled, but the same marks are used to
-define code boundaries. See `folding-add-to-marks-list' for customization.
-Nested folds and sections are included: section delimiters contained within a
+function `folding-mode' doesn't need to be enabled, but the same
+marks are used to define code boundaries. See
+`folding-add-to-marks-list' for customization. Nested folds and
+sections are included: section delimiters contained within a
 nested fold are ignored.
 
-When the region to be evaluated is longer than a single line and less than a
-screenful, the region is temporarily highlighted according to
-`python-section-highlight'."
+When the region to be evaluated is longer than a single line and
+less than a screenful, the region is temporarily highlighted
+according to `python-section-highlight'."
   (interactive)
   (let ((start (python-section-search t))
 	(end (python-section-search nil)))
@@ -422,8 +425,7 @@ screenful, the region is temporarily highlighted according to
 
 ;;;###autoload
 (defun python-shell-send-fold-or-section-and-step ()
-  "Send the section of code at point to the inferior Python process, up to the
-current fold or buffer boundaries, then move on to the next."
+  "Send the fold, or section, or buffer and step."
   (interactive)
   (python-shell-send-fold-or-section)
   (python-forward-fold-or-section))
@@ -439,8 +441,8 @@ Otherwise, use `python-shell-send-current-fold-or-section'"
 
 ;;;###autoload
 (defun python-forward-fold-or-section (&optional count)
-  "Move the point forward to the next fold or section marker. When a prefix
-argument is provided, move COUNT times forward."
+  "Move the point forward to the next fold or section marker.
+When a prefix argument is provided, move COUNT times forward."
   (interactive "p")
   (unless count (setq count 1))
   (catch 'end
@@ -453,8 +455,8 @@ argument is provided, move COUNT times forward."
 
 ;;;###autoload
 (defun python-backward-fold-or-section (&optional count)
-  "Move the point backward to the previous fold or section marker. When a
-prefix argument is provided, move COUNT times backward."
+  "Move the point backward to the previous fold or section marker.
+When a prefix argument is provided, move COUNT times backward."
   (interactive "p")
   (unless count (setq count 1))
   (python-forward-fold-or-section (- count)))
@@ -491,11 +493,12 @@ sections after the ones already marked."
 	 (python-backward-fold-or-section arg))))
 
 
+
 ;; Exception handling
 
 (defcustom python-shell-show-exceptions t
-  "Display uncaught exceptions of the inferior Python process using
-`python-shell-show-exception-function'."
+  "Display inferior buffer on uncaught exceptions.
+Also see `python-shell-show-exception-function'."
   :type 'boolean
   :group 'python-x)
 
@@ -503,8 +506,8 @@ sections after the ones already marked."
   (lambda (buffer)
     (when python-shell-show-exceptions
       (display-buffer buffer)))
-  "Function invoked when the inferion Python process emits an uncaught
-exception. By default, simply call `display-buffer' according to
+  "Function invoked when the inferion Python process emits an exception.
+By default, simply call `display-buffer' according to
 `python-shell-show-exceptions'.")
 
 (defvar python-comint-exceptions-regex
@@ -513,7 +516,7 @@ exception. By default, simply call `display-buffer' according to
 		 '("\\bTraceback (most recent call last):\n  File \""
 		   "  File \"[^\"]+\", line [0-9]+\n.*\n +\\^\n\\(Syntax\\|Indentation\\)Error: ")
 		 "\\|") "\\)")
-  "Regular expression used to search for exceptions in the output")
+  "Regular expression used to search for exceptions in the output.")
 
 (defun python-comint--find-exceptions (output)
   (save-excursion
@@ -547,7 +550,7 @@ exception. By default, simply call `display-buffer' according to
 
 (add-hook 'inferior-python-mode-hook 'python-x--comint-setup)
 
-
+
 ;; ElDoc/Help
 
 (defcustom python-shell-capture-help t
@@ -557,8 +560,10 @@ exception. By default, simply call `display-buffer' according to
 
 ;;;###autoload
 (defun python-eldoc-for-region-or-symbol (string)
-  "ElDoc for the current region or symbol at point. Similar to
-`python-eldoc-at-point', but doesn't prompt unless given a prefix argument."
+  "ElDoc for STRING.
+By default STRING is the current region or symbol at
+point.  Similar to `python-eldoc-at-point', but doesn't prompt
+unless given a prefix argument."
   (interactive
    (let* ((substring (if (use-region-p)
 			 (buffer-substring-no-properties (region-beginning) (region-end))
@@ -583,8 +588,9 @@ exception. By default, simply call `display-buffer' according to
 
 ;;;###autoload
 (defun python-help-for-region-or-symbol (string)
-  "Display documentation for the current region or symbol at point. If a prefix
-argument is given, prompt for a statement to inspect."
+  "Display documentation for STRING.
+By default STRING is the current region or symbol at point. If a
+prefix argument is given, prompt for a statement to inspect."
   (interactive
    (let* ((substring (if (use-region-p)
 			 (buffer-substring-no-properties (region-beginning) (region-end))
@@ -595,7 +601,7 @@ argument is given, prompt for a statement to inspect."
 	       string))))
   (python-help--display-for-string (python-shell-get-process) string))
 
-
+
 ;; Utilities
 
 ;;;###autoload
@@ -613,8 +619,8 @@ argument is given, prompt for a statement to inspect."
 
 ;;;###autoload
 (defun python-shell-print-region-or-symbol ()
-  "Send the current region to the inferior Python process, if active; otherwise
-the send the symbol at point. Print and display the result on the output buffer."
+  "Send region or symbol at point to the inferior Python process.
+Print and display the result on the output buffer."
   (interactive)
   (let* ((substring (if (use-region-p)
 			(buffer-substring-no-properties (region-beginning) (region-end))
@@ -624,16 +630,17 @@ the send the symbol at point. Print and display the result on the output buffer.
     (python-shell-display-shell)))
 
 
+
 ;; Configuration and setup
 
 (defun python-x-mode-expansions ()
-  "Add `python-x' specific expansions for `expand-region'"
+  "Add `python-x' specific expansions for `expand-region'."
   (set (make-local-variable 'er/try-expand-list)
     (append er/try-expand-list '(python-mark-fold-or-section))))
 
 ;;;###autoload
 (defun python-x-setup ()
-  "Setup an ESS-like keyboard map in python-mode"
+  "Setup an ESS-like keyboard map in python-mode."
   (define-key python-mode-map (kbd "C-c C-j") 'python-shell-send-line)
   (define-key python-mode-map (kbd "C-c C-n") 'python-shell-send-line-and-step)
   (define-key python-mode-map (kbd "C-c C-f") 'python-shell-send-defun)
