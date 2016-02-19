@@ -91,70 +91,70 @@
   (eval-and-compile
     (defconst python-rx-constituents
       `((block-start          . ,(rx symbol-start
-				     (or "def" "class" "if" "elif" "else" "try"
-					 "except" "finally" "for" "while" "with")
-				     symbol-end))
-	(dedenter            . ,(rx symbol-start
-				    (or "elif" "else" "except" "finally")
-				    symbol-end))
-	(block-ender         . ,(rx symbol-start
-				    (or
-				     "break" "continue" "pass" "raise" "return")
-				    symbol-end))
-	(decorator            . ,(rx line-start (* space) ?@ (any letter ?_)
-				     (* (any word ?_))))
-	(defun                . ,(rx symbol-start (or "def" "class") symbol-end))
-	(if-name-main         . ,(rx line-start "if" (+ space) "__name__"
-				     (+ space) "==" (+ space)
-				     (any ?' ?\") "__main__" (any ?' ?\")
-				     (* space) ?:))
-	(symbol-name          . ,(rx (any letter ?_) (* (any word ?_))))
-	(open-paren           . ,(rx (or "{" "[" "(")))
-	(close-paren          . ,(rx (or "}" "]" ")")))
-	(simple-operator      . ,(rx (any ?+ ?- ?/ ?& ?^ ?~ ?| ?* ?< ?> ?= ?%)))
-	;; FIXME: rx should support (not simple-operator).
-	(not-simple-operator  . ,(rx
-				  (not
-				   (any ?+ ?- ?/ ?& ?^ ?~ ?| ?* ?< ?> ?= ?%))))
-	;; FIXME: Use regexp-opt.
-	(operator             . ,(rx (or "+" "-" "/" "&" "^" "~" "|" "*" "<" ">"
-					 "=" "%" "**" "//" "<<" ">>" "<=" "!="
-					 "==" ">=" "is" "not")))
-	;; FIXME: Use regexp-opt.
-	(assignment-operator  . ,(rx (or "=" "+=" "-=" "*=" "/=" "//=" "%=" "**="
-					 ">>=" "<<=" "&=" "^=" "|=")))
-	(string-delimiter . ,(rx (and
-				  ;; Match even number of backslashes.
-				  (or (not (any ?\\ ?\' ?\")) point
-				      ;; Quotes might be preceded by a escaped quote.
-				      (and (or (not (any ?\\)) point) ?\\
-					   (* ?\\ ?\\) (any ?\' ?\")))
-				  (* ?\\ ?\\)
-				  ;; Match single or triple quotes of any kind.
-				  (group (or  "\"" "\"\"\"" "'" "'''")))))
-	(coding-cookie . ,(rx line-start ?# (* space)
-			      (or
-			       ;; # coding=<encoding name>
-			       (: "coding" (or ?: ?=) (* space) (group-n 1 (+ (or word ?-))))
-			       ;; # -*- coding: <encoding name> -*-
-			       (: "-*-" (* space) "coding:" (* space)
-				  (group-n 1 (+ (or word ?-))) (* space) "-*-")
-			       ;; # vim: set fileencoding=<encoding name> :
-			       (: "vim:" (* space) "set" (+ space)
-				  "fileencoding" (* space) ?= (* space)
-				  (group-n 1 (+ (or word ?-))) (* space) ":")))))
+                                     (or "def" "class" "if" "elif" "else" "try"
+                                         "except" "finally" "for" "while" "with")
+                                     symbol-end))
+        (dedenter            . ,(rx symbol-start
+                                    (or "elif" "else" "except" "finally")
+                                    symbol-end))
+        (block-ender         . ,(rx symbol-start
+                                    (or
+                                     "break" "continue" "pass" "raise" "return")
+                                    symbol-end))
+        (decorator            . ,(rx line-start (* space) ?@ (any letter ?_)
+                                     (* (any word ?_))))
+        (defun                . ,(rx symbol-start (or "def" "class") symbol-end))
+        (if-name-main         . ,(rx line-start "if" (+ space) "__name__"
+                                     (+ space) "==" (+ space)
+                                     (any ?' ?\") "__main__" (any ?' ?\")
+                                     (* space) ?:))
+        (symbol-name          . ,(rx (any letter ?_) (* (any word ?_))))
+        (open-paren           . ,(rx (or "{" "[" "(")))
+        (close-paren          . ,(rx (or "}" "]" ")")))
+        (simple-operator      . ,(rx (any ?+ ?- ?/ ?& ?^ ?~ ?| ?* ?< ?> ?= ?%)))
+        ;; FIXME: rx should support (not simple-operator).
+        (not-simple-operator  . ,(rx
+                                  (not
+                                   (any ?+ ?- ?/ ?& ?^ ?~ ?| ?* ?< ?> ?= ?%))))
+        ;; FIXME: Use regexp-opt.
+        (operator             . ,(rx (or "+" "-" "/" "&" "^" "~" "|" "*" "<" ">"
+                                         "=" "%" "**" "//" "<<" ">>" "<=" "!="
+                                         "==" ">=" "is" "not")))
+        ;; FIXME: Use regexp-opt.
+        (assignment-operator  . ,(rx (or "=" "+=" "-=" "*=" "/=" "//=" "%=" "**="
+                                         ">>=" "<<=" "&=" "^=" "|=")))
+        (string-delimiter . ,(rx (and
+                                  ;; Match even number of backslashes.
+                                  (or (not (any ?\\ ?\' ?\")) point
+                                      ;; Quotes might be preceded by a escaped quote.
+                                      (and (or (not (any ?\\)) point) ?\\
+                                           (* ?\\ ?\\) (any ?\' ?\")))
+                                  (* ?\\ ?\\)
+                                  ;; Match single or triple quotes of any kind.
+                                  (group (or  "\"" "\"\"\"" "'" "'''")))))
+        (coding-cookie . ,(rx line-start ?# (* space)
+                              (or
+                               ;; # coding=<encoding name>
+                               (: "coding" (or ?: ?=) (* space) (group-n 1 (+ (or word ?-))))
+                               ;; # -*- coding: <encoding name> -*-
+                               (: "-*-" (* space) "coding:" (* space)
+                                  (group-n 1 (+ (or word ?-))) (* space) "-*-")
+                               ;; # vim: set fileencoding=<encoding name> :
+                               (: "vim:" (* space) "set" (+ space)
+                                  "fileencoding" (* space) ?= (* space)
+                                  (group-n 1 (+ (or word ?-))) (* space) ":")))))
       "Additional Python specific sexps for `python-rx'")
 
     (defmacro python-rx (&rest regexps)
       "Python mode specialized rx macro.
 This variant of `rx' supports common Python named REGEXPS."
       (let ((rx-constituents (append python-rx-constituents rx-constituents)))
-	(cond ((null regexps)
-	       (error "No regexp"))
-	      ((cdr regexps)
-	       (rx-to-string `(and ,@regexps) t))
-	      (t
-	       (rx-to-string (car regexps) t))))))
+        (cond ((null regexps)
+               (error "No regexp"))
+              ((cdr regexps)
+               (rx-to-string `(and ,@regexps) t))
+              (t
+               (rx-to-string (car regexps) t))))))
 
   ;; http://debbugs.gnu.org/cgi/bugreport.cgi?bug=21086
   (defun python-shell-buffer-substring (start end &optional nomain)
@@ -171,61 +171,61 @@ the python shell:
   4. Wraps indented regions under an \"if True:\" block so the
      interpreter evaluates them correctly."
     (let* ((start (save-excursion
-		    ;; Normalize start to the line beginning position.
-		    (goto-char start)
-		    (line-beginning-position)))
-	   (substring (buffer-substring-no-properties start end))
-	   (starts-at-point-min-p (save-restriction
-				    (widen)
-				    (= (point-min) start)))
-	   (encoding (python-info-encoding))
-	   (toplevel-p (zerop (save-excursion
-				(goto-char start)
-				(python-util-forward-comment 1)
-				(current-indentation))))
-	   (fillstr (when (not starts-at-point-min-p)
-		      (concat
-		       (format "# -*- coding: %s -*-\n" encoding)
-		       (make-string
-			;; Subtract 2 because of the coding cookie.
-			(- (line-number-at-pos start) 2) ?\n)))))
+                    ;; Normalize start to the line beginning position.
+                    (goto-char start)
+                    (line-beginning-position)))
+           (substring (buffer-substring-no-properties start end))
+           (starts-at-point-min-p (save-restriction
+                                    (widen)
+                                    (= (point-min) start)))
+           (encoding (python-info-encoding))
+           (toplevel-p (zerop (save-excursion
+                                (goto-char start)
+                                (python-util-forward-comment 1)
+                                (current-indentation))))
+           (fillstr (when (not starts-at-point-min-p)
+                      (concat
+                       (format "# -*- coding: %s -*-\n" encoding)
+                       (make-string
+                        ;; Subtract 2 because of the coding cookie.
+                        (- (line-number-at-pos start) 2) ?\n)))))
       (with-temp-buffer
-	(python-mode)
-	(when fillstr
-	  (insert fillstr))
-	(insert substring)
-	(goto-char (point-min))
-	(when (not toplevel-p)
-	  (insert "if True:")
-	  (delete-region (point) (line-end-position)))
-	(when nomain
-	  (let* ((if-name-main-start-end
-		  (and nomain
-		       (save-excursion
-			 (when (python-nav-if-name-main)
-			   (cons (point)
-				 (progn (python-nav-forward-sexp-safe)
-					;; Include ending newline
-					(forward-line 1)
-					(point)))))))
-		 ;; Oh destructuring bind, how I miss you.
-		 (if-name-main-start (car if-name-main-start-end))
-		 (if-name-main-end (cdr if-name-main-start-end))
-		 (fillstr (make-string
-			   (- (line-number-at-pos if-name-main-end)
-			      (line-number-at-pos if-name-main-start)) ?\n)))
-	    (when if-name-main-start-end
-	      (goto-char if-name-main-start)
-	      (delete-region if-name-main-start if-name-main-end)
-	      (insert fillstr))))
-	;; Ensure there's only one coding cookie in the generated string.
-	(goto-char (point-min))
-	(when (looking-at-p (python-rx coding-cookie))
-	  (forward-line 1)
-	  (when (looking-at-p (python-rx coding-cookie))
-	    (delete-region
-	     (line-beginning-position) (line-end-position))))
-	(buffer-substring-no-properties (point-min) (point-max))))))
+        (python-mode)
+        (when fillstr
+          (insert fillstr))
+        (insert substring)
+        (goto-char (point-min))
+        (when (not toplevel-p)
+          (insert "if True:")
+          (delete-region (point) (line-end-position)))
+        (when nomain
+          (let* ((if-name-main-start-end
+                  (and nomain
+                       (save-excursion
+                         (when (python-nav-if-name-main)
+                           (cons (point)
+                                 (progn (python-nav-forward-sexp-safe)
+                                        ;; Include ending newline
+                                        (forward-line 1)
+                                        (point)))))))
+                 ;; Oh destructuring bind, how I miss you.
+                 (if-name-main-start (car if-name-main-start-end))
+                 (if-name-main-end (cdr if-name-main-start-end))
+                 (fillstr (make-string
+                           (- (line-number-at-pos if-name-main-end)
+                              (line-number-at-pos if-name-main-start)) ?\n)))
+            (when if-name-main-start-end
+              (goto-char if-name-main-start)
+              (delete-region if-name-main-start if-name-main-end)
+              (insert fillstr))))
+        ;; Ensure there's only one coding cookie in the generated string.
+        (goto-char (point-min))
+        (when (looking-at-p (python-rx coding-cookie))
+          (forward-line 1)
+          (when (looking-at-p (python-rx coding-cookie))
+            (delete-region
+             (line-beginning-position) (line-end-position))))
+        (buffer-substring-no-properties (point-min) (point-max))))))
 
 
 
@@ -261,8 +261,8 @@ visible region."
       (forward-line (- 1 margin-bottom)))
     (setq end (point)))
   (when (and (> (count-lines start end) 1)
-	     (or (> start (window-start))
-		 (< end (window-end))))
+             (or (> start (window-start))
+                 (< end (window-end))))
     (vhl/add-range start end)))
 
 (defun python-shell--send-block-with-motion (move-start move-end step as-region)
@@ -274,18 +274,18 @@ visible region."
       (setq start (point)))
     (when step
       (when (functionp step)
-	(funcall step))
+        (funcall step))
       (python-nav-forward-statement))
     (when python-multiline-highlight
       (let ((margin-start (if as-region 1 0))
-	    (margin-end (if (or step as-region) 1 0)))
-	(python--vhl-full-lines start (if step (point) end)
-				margin-start margin-end)))
+            (margin-end (if (or step as-region) 1 0)))
+        (python--vhl-full-lines start (if step (point) end)
+                                margin-start margin-end)))
     (if as-region
-	(python-shell-send-region start end)
-	(let* ((substring (buffer-substring-no-properties start end))
-	       (string (python-string-to-statement substring)))
-	  (python-shell-send-string string)))))
+        (python-shell-send-region start end)
+      (let* ((substring (buffer-substring-no-properties start end))
+             (string (python-string-to-statement substring)))
+        (python-shell-send-string string)))))
 
 
 
@@ -324,7 +324,7 @@ Printing the result of the expression on the shell."
   "Send the current paragraph to and step to next paragraph."
   (interactive)
   (python-shell--send-block-with-motion 'backward-paragraph 'forward-paragraph
-					'forward-paragraph t))
+                                        'forward-paragraph t))
 
 ;;;###autoload
 (defun python-shell-send-region-or-paragraph ()
@@ -333,7 +333,7 @@ Otherwise, send the current paragraph."
   (interactive)
   (if (use-region-p)
       (python-shell-send-region (region-beginning) (region-end))
-      (python-shell-send-paragraph)))
+    (python-shell-send-paragraph)))
 
 
 
@@ -356,44 +356,44 @@ Requires `volatile-highlights' to be installed."
 
 (defun python-section--skip-p (pos skip)
   (if (not skip) nil
-      (let ((start (car skip))
-	    (end (cadr skip)))
-	(or (and (>= pos start) (<= pos end))
-	    (python-section--skip-p pos (cddr skip))))))
+    (let ((start (car skip))
+          (end (cadr skip)))
+      (or (and (>= pos start) (<= pos end))
+          (python-section--skip-p pos (cddr skip))))))
 
 (defun python-section--search-backward (bound skip)
   (ignore-errors
-   (forward-char (length python-section-delimiter)))
+    (forward-char (length python-section-delimiter)))
   (cl-loop for pos = (search-backward python-section-delimiter bound t)
-     while pos do
-       (setq pos (match-beginning 0))
-       (if (not (python-section--skip-p pos skip))
-	   (cl-return pos))))
+           while pos do
+           (setq pos (match-beginning 0))
+           (if (not (python-section--skip-p pos skip))
+               (cl-return pos))))
 
 (defun python-section--search-forward (bound skip)
   (ignore-errors
     (forward-char))
   (cl-loop for pos = (search-forward python-section-delimiter bound t)
-     while pos do
-       (setq pos (match-beginning 0))
-       (if (not (python-section--skip-p pos (nreverse skip)))
-	   (cl-return pos))))
+           while pos do
+           (setq pos (match-beginning 0))
+           (if (not (python-section--skip-p pos (nreverse skip)))
+               (cl-return pos))))
 
 (defun python-section-search (rev)
   (unless folding-regexp
     ;; define folding markers, even when folding-mode is not active
     (folding-set-local-variables))
   (let ((case-fold-search nil)
-	(ret (folding-skip-folds rev)))
+        (ret (folding-skip-folds rev)))
     (let ((pos (or (car-safe ret)
-		   (if rev (point-min) (point-max))))
-	  (skip (cdr-safe ret)))
+                   (if rev (point-min) (point-max))))
+          (skip (cdr-safe ret)))
       (if (not python-section-delimiter) pos
-	  (save-excursion
-	    (or (if rev
-		    (python-section--search-backward pos skip)
-		    (python-section--search-forward pos skip))
-		pos))))))
+        (save-excursion
+          (or (if rev
+                  (python-section--search-backward pos skip)
+                (python-section--search-forward pos skip))
+              pos))))))
 
 ;;;###autoload
 (defun python-shell-send-fold-or-section ()
@@ -418,7 +418,7 @@ less than a screenful, the region is temporarily highlighted
 according to `python-section-highlight'."
   (interactive)
   (let ((start (python-section-search t))
-	(end (python-section-search nil)))
+        (end (python-section-search nil)))
     (when python-section-highlight
       (python--vhl-full-lines start end 1 1))
     (python-shell-send-region start end)))
@@ -437,7 +437,7 @@ Otherwise, use `python-shell-send-current-fold-or-section'"
   (interactive)
   (if (use-region-p)
       (python-shell-send-region (region-beginning) (region-end))
-      (python-shell-send-fold-or-section)))
+    (python-shell-send-fold-or-section)))
 
 ;;;###autoload
 (defun python-forward-fold-or-section (&optional count)
@@ -449,9 +449,9 @@ When a prefix argument is provided, move COUNT times forward."
     (dotimes (i (abs count))
       (forward-line (if (> count 0) 1 -1))
       (let ((pos (python-section-search (< count 0))))
-	(when (eq pos (point))
-	  (throw 'end nil))
-	(goto-char pos)))))
+        (when (eq pos (point))
+          (throw 'end nil))
+        (goto-char pos)))))
 
 ;;;###autoload
 (defun python-backward-fold-or-section (&optional count)
@@ -480,17 +480,17 @@ sections after the ones already marked."
   (when (zerop arg)
     (error "Cannot mark zero sections"))
   (cond ((and allow-extend
-	      (or (and (eq last-command this-command) (mark t))
-		  (and transient-mark-mode mark-active)))
-	 (set-mark
-	  (save-excursion
-	    (goto-char (mark))
-	    (python-forward-fold-or-section arg)
-	    (point))))
-	(t
-	 (python-forward-fold-or-section arg)
-	 (push-mark nil t t)
-	 (python-backward-fold-or-section arg))))
+              (or (and (eq last-command this-command) (mark t))
+                  (and transient-mark-mode mark-active)))
+         (set-mark
+          (save-excursion
+            (goto-char (mark))
+            (python-forward-fold-or-section arg)
+            (point))))
+        (t
+         (python-forward-fold-or-section arg)
+         (push-mark nil t t)
+         (python-backward-fold-or-section arg))))
 
 
 
@@ -512,38 +512,38 @@ By default, simply call `display-buffer' according to
 
 (defvar python-comint-exceptions-regex
   (concat "\\(" (mapconcat
-		 'identity
-		 '("\\bTraceback (most recent call last):\n  File \""
-		   "  File \"[^\"]+\", line [0-9]+\n.*\n +\\^\n\\(Syntax\\|Indentation\\)Error: ")
-		 "\\|") "\\)")
+                 'identity
+                 '("\\bTraceback (most recent call last):\n  File \""
+                   "  File \"[^\"]+\", line [0-9]+\n.*\n +\\^\n\\(Syntax\\|Indentation\\)Error: ")
+                 "\\|") "\\)")
   "Regular expression used to search for exceptions in the output.")
 
 (defun python-comint--find-exceptions (output)
   (save-excursion
     (goto-char (point-max))
     (when (re-search-backward python-comint-exceptions-regex
-			      comint-last-output-start t)
+                              comint-last-output-start t)
       (funcall python-shell-show-exception-function (current-buffer)))))
 
 (defun python-comint--input-send (proc string)
   (let ((inhibit-send nil))
     (when (string-match (python-rx line-start (* whitespace)
-				   (group symbol-name) (* whitespace)
-				   (group "(" (* whitespace) (+ any) (* whitespace) ")")
-				   (* whitespace) line-end)
-			string)
+                                   (group symbol-name) (* whitespace)
+                                   (group "(" (* whitespace) (+ any) (* whitespace) ")")
+                                   (* whitespace) line-end)
+                        string)
       ;; function call
       (let ((func (match-string-no-properties 1 string))
-	    (args (match-string-no-properties 2 string)))
-	(when (and python-shell-capture-help
-		   (string-equal func "help"))
-	  (setq inhibit-send t)
-	  (python-help--display-for-string proc args))))
+            (args (match-string-no-properties 2 string)))
+        (when (and python-shell-capture-help
+                   (string-equal func "help"))
+          (setq inhibit-send t)
+          (python-help--display-for-string proc args))))
     (comint-simple-send proc (if inhibit-send "" string))))
 
 (defun python-x--comint-setup ()
   (add-hook 'comint-output-filter-functions
-	    'python-comint--find-exceptions)
+            'python-comint--find-exceptions)
   ;; python-shell--parent-buffer is (erroneusly) let-bound in python.el
   (setq-local python-shell--parent-buffer python-shell--parent-buffer)
   (setq-local comint-input-sender 'python-comint--input-send))
@@ -566,17 +566,17 @@ point.  Similar to `python-eldoc-at-point', but doesn't prompt
 unless given a prefix argument."
   (interactive
    (let* ((substring (if (use-region-p)
-			 (buffer-substring-no-properties (region-beginning) (region-end))
-			 (python-info-current-symbol)))
-	  (string (python-string-to-statement substring)))
+                         (buffer-substring-no-properties (region-beginning) (region-end))
+                       (python-info-current-symbol)))
+          (string (python-string-to-statement substring)))
      (list (if current-prefix-arg
-	       (read-string "ElDoc for: " string t)
-	       string))))
-    (python-eldoc-at-point string))
+               (read-string "ElDoc for: " string t)
+             string))))
+  (python-eldoc-at-point string))
 
 (defun python-help--display-for-string (proc string)
   (let ((buffer (get-buffer-create "*help[Python]*"))
-	(output (python-shell-send-string-no-output (concat "help(" string ")") proc)))
+        (output (python-shell-send-string-no-output (concat "help(" string ")") proc)))
     (with-current-buffer buffer
       (setq buffer-read-only nil)
       (delete-region (point-min) (point-max))
@@ -593,12 +593,12 @@ By default STRING is the current region or symbol at point. If a
 prefix argument is given, prompt for a statement to inspect."
   (interactive
    (let* ((substring (if (use-region-p)
-			 (buffer-substring-no-properties (region-beginning) (region-end))
-			 (python-info-current-symbol)))
-	  (string (python-string-to-statement substring)))
+                         (buffer-substring-no-properties (region-beginning) (region-end))
+                       (python-info-current-symbol)))
+          (string (python-string-to-statement substring)))
      (list (if current-prefix-arg
-	       (read-string "Help for: " string t)
-	       string))))
+               (read-string "Help for: " string t)
+             string))))
   (python-help--display-for-string (python-shell-get-process) string))
 
 
@@ -615,7 +615,7 @@ prefix argument is given, prompt for a statement to inspect."
   (interactive)
   (if python-shell--parent-buffer
       (pop-to-buffer python-shell--parent-buffer)
-      (message "No associated Python buffer")))
+    (message "No associated Python buffer")))
 
 ;;;###autoload
 (defun python-shell-print-region-or-symbol ()
@@ -623,9 +623,9 @@ prefix argument is given, prompt for a statement to inspect."
 Print and display the result on the output buffer."
   (interactive)
   (let* ((substring (if (use-region-p)
-			(buffer-substring-no-properties (region-beginning) (region-end))
-			(python-info-current-symbol)))
-	 (string (python-string-to-statement substring)))
+                        (buffer-substring-no-properties (region-beginning) (region-end))
+                      (python-info-current-symbol)))
+         (string (python-string-to-statement substring)))
     (python-shell-send-string string)
     (python-shell-display-shell)))
 
@@ -636,7 +636,7 @@ Print and display the result on the output buffer."
 (defun python-x-mode-expansions ()
   "Add `python-x' specific expansions for `expand-region'."
   (set (make-local-variable 'er/try-expand-list)
-    (append er/try-expand-list '(python-mark-fold-or-section))))
+       (append er/try-expand-list '(python-mark-fold-or-section))))
 
 ;;;###autoload
 (defun python-x-setup ()
