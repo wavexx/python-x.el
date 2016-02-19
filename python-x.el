@@ -522,7 +522,7 @@ sections after the ones already marked."
 	      ((eq state 'error)
 	       '(:propertize ":error" face python-x-modeline-error-face))
 	      ((eq state 'exited)
-	       '(:propertize ":exited" face compilation-mode-line-exited-face))))
+	       '(:propertize ":exited" face python-x-modeline-exited-face))))
   (force-mode-line-update))
 
 (defun python-comint--process-state-run (&rest r)
