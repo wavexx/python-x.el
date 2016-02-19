@@ -266,11 +266,10 @@ highlight is not set if spanning a single line or the entire visible region."
 (defun python-shell--send-block-with-motion (move-start move-end step as-region)
   (let (start end)
     (save-excursion
+      (funcall move-end)
+      (setq end (point))
       (funcall move-start)
       (setq start (point)))
-    (save-excursion
-      (funcall move-end)
-      (setq end (point)))
     (when step
       (when (functionp step)
 	(funcall step))
