@@ -492,7 +492,51 @@ sections after the ones already marked."
 	 (python-backward-fold-or-section arg))))
 
 
-;; Exception handling
+;; Process/Exception handling
+(defface python-x-modeline-ready-face
+    '((t nil))
+  "Face used for the \"ready\" state in the mode-line."
+  :group 'python-x)
+
+(defface python-x-modeline-running-face
+    '((t :inherit compilation-mode-line-run))
+  "Face used for the \"running\" state in the mode-line."
+  :group 'python-x)
+
+(defface python-x-modeline-error-face
+    '((t :inherit compilation-mode-line-fail))
+  "Face used for the \"error\" state in the mode-line."
+  :group 'python-x)
+
+(defface python-x-modeline-exited-face
+    '((t :inherit compilation-mode-line-exit))
+  "Face used for the \"exited\" state in the mode-line."
+  :group 'python-x)
+
+(defun python-comint--process-state-changed (state)
+  (setq mode-line-process
+	(cond ((eq state 'ready)
+	       '(:propertize ":ready" face python-x-modeline-ready-face))
+	      ((eq state 'running)
+	       '(:propertize ":running" face python-x-modeline-running-face))
+	      ((eq state 'error)
+	       '(:propertize ":error" face python-x-modeline-error-face))
+	      ((eq state 'exited)
+	       '(:propertize ":exited" face compilation-mode-line-exited-face))))
+  (force-mode-line-update))
+
+(defun python-comint--process-state-run (&rest r)
+  ;; we might run from either the main or inferior process, so setup the
+  ;; initial buffer to be always the inferior
+  (let ((process (python-shell-get-process)))
+    (when process
+      (with-current-buffer (process-buffer process)
+	(with-current-buffer python-shell--parent-buffer
+	  (python-comint--process-state-changed 'running))
+	(setq python-comint--process-status 'running)))))
+
+(add-function :after (symbol-function 'python-shell-send-string)
+	      #'python-comint--process-state-run)
 
 (defcustom python-shell-show-exceptions t
   "Display uncaught exceptions of the inferior Python process using
@@ -516,12 +560,29 @@ exception. By default, simply call `display-buffer' according to
 		 "\\|") "\\)")
   "Regular expression used to search for exceptions in the output")
 
-(defun python-comint--find-exceptions (output)
+(defun python-comint--process-sentinel (process event)
+  (let ((buffer (process-buffer process)))
+    (unless (comint-check-proc buffer)
+      (with-current-buffer buffer
+	(with-current-buffer python-shell--parent-buffer
+	  (python-comint--process-state-changed 'exited))
+	(setq python-comint--process-status 'exited)))))
+
+(defun python-comint--output-filter (output)
   (save-excursion
     (goto-char (point-max))
-    (when (re-search-backward python-comint-exceptions-regex
-			      comint-last-output-start t)
-      (funcall python-shell-show-exception-function (current-buffer)))))
+    (cond ((re-search-backward python-comint-exceptions-regex
+			       comint-last-output-start t)
+	   ;; exception in output
+	   (with-current-buffer python-shell--parent-buffer
+	     (python-comint--process-state-changed 'error))
+	   (setq python-comint--process-status 'error)
+	   (funcall python-shell-show-exception-function (current-buffer)))
+	  ((equal (comint-check-proc (current-buffer)) '(run stop))
+	   ;; ready
+	   (with-current-buffer python-shell--parent-buffer
+	     (python-comint--process-state-changed 'ready))
+	   (setq python-comint--process-status 'ready)))))
 
 (defun python-comint--input-send (proc string)
   (let ((inhibit-send nil))
@@ -540,13 +601,20 @@ exception. By default, simply call `display-buffer' according to
     (comint-simple-send proc (if inhibit-send "" string))))
 
 (defun python-x--comint-setup ()
-  (add-hook 'comint-output-filter-functions
-	    'python-comint--find-exceptions)
+  (add-hook 'comint-output-filter-functions #'python-comint--output-filter)
+  (setq-local comint-input-sender #'python-comint--input-send)
+  (add-function :after (process-sentinel (get-buffer-process (current-buffer)))
+		#'python-comint--process-sentinel)
+
   ;; python-shell--parent-buffer is (erroneusly) let-bound in python.el
   (setq-local python-shell--parent-buffer python-shell--parent-buffer)
-  (setq-local comint-input-sender 'python-comint--input-send))
 
-(add-hook 'inferior-python-mode-hook 'python-x--comint-setup)
+  ;; start in "running state"
+  (setq-local python-comint--process-status 'running)
+  (with-current-buffer python-shell--parent-buffer
+    (python-comint--process-state-changed 'running)))
+
+(add-hook 'inferior-python-mode-hook #'python-x--comint-setup)
 
 
 ;; ElDoc/Help
