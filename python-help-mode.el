@@ -31,7 +31,7 @@
 (define-derived-mode
     python-help-mode special-mode "Python Help"
     (buffer-disable-undo)
-    (set-buffer-modified-p 'nil)
+    (set-buffer-modified-p nil)
     (setq truncate-lines nil
 	  word-wrap t
 	  font-lock-defaults python-help-keywords))
