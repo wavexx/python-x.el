@@ -79,7 +79,7 @@
 ;;; Code:
 (require 'python)
 (require 'folding)
-(require 'cl-lib)
+(require 'cl)
 
 ;; Optional
 (eval-when-compile
@@ -513,6 +513,19 @@ sections after the ones already marked."
   "Face used for the \"exited\" state in the mode-line."
   :group 'python-x)
 
+;; We need to keep an explicit reference to the inferior buffer to track
+;; execution status among shared processes. We add an explicit hook for the two
+;; main entry points.
+(defvar-local python-shell--inferior-buffer nil)
+
+(defun python-shell--register-inferior (&rest r)
+  (setq python-shell--inferior-buffer (process-buffer (python-shell-get-process))))
+
+(add-function :after (symbol-function 'run-python)
+	      #'python-shell--register-inferior)
+(add-function :after (symbol-function 'python-shell-get-or-create-process)
+	      #'python-shell--register-inferior)
+
 (defun python-comint--related-buffers ()
   "From an inferior process, return a list of buffers that are connected back
 to us (in descending order of recency)."
@@ -521,9 +534,8 @@ to us (in descending order of recency)."
      (lambda (buffer)
        (with-current-buffer buffer
 	 (when (eq major-mode 'python-mode)
-	   (let ((process (python-shell-get-process)))
-	     (when process
-	       (eq inferior-buffer (process-buffer process)))))))
+	   (when (bufferp python-shell--inferior-buffer)
+	     (eq inferior-buffer python-shell--inferior-buffer)))))
      (buffer-list))))
 
 (defmacro python-comint--with-related-buffers (&rest body)
