@@ -534,13 +534,13 @@ to us (in descending order of recency)."
 (defun python-comint--process-state-changed (state)
   (setq mode-line-process
 	(cond ((eq state 'ready)
-	       '(:propertize ":ready" face python-x-modeline-ready-face))
+	       '(:propertize ":ok" face python-x-modeline-ready-face))
 	      ((eq state 'running)
-	       '(:propertize ":running" face python-x-modeline-running-face))
+	       '(:propertize ":run" face python-x-modeline-running-face))
 	      ((eq state 'error)
-	       '(:propertize ":error" face python-x-modeline-error-face))
+	       '(:propertize ":fail" face python-x-modeline-error-face))
 	      ((eq state 'exited)
-	       '(:propertize ":exited" face python-x-modeline-exited-face))))
+	       '(:propertize ":exit" face python-x-modeline-exited-face))))
   (force-mode-line-update))
 
 (defun python-comint--update-process-state (state)
