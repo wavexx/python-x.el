@@ -586,7 +586,8 @@ exception. By default, simply call `display-buffer' according to
   (let ((buffer (process-buffer process)))
     (unless (comint-check-proc buffer)
       (with-current-buffer buffer
-	(python-comint--update-process-state 'exited)))))
+	(python-comint--update-process-state
+	 (if (zerop (process-exit-status process)) 'exited 'error))))))
 
 (defun python-comint--output-filter (output)
   (save-excursion
