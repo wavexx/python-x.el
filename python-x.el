@@ -513,6 +513,24 @@ sections after the ones already marked."
   "Face used for the \"exited\" state in the mode-line."
   :group 'python-x)
 
+(defun python-comint--related-buffers ()
+  "From an inferior process, return a list of buffers that are connected back
+to us (in descending order of recency)."
+  (let ((inferior-buffer (current-buffer)))
+    (remove-if-not
+     (lambda (buffer)
+       (with-current-buffer buffer
+	 (when (eq major-mode 'python-mode)
+	   (let ((process (python-shell-get-process)))
+	     (when process
+	       (eq inferior-buffer (process-buffer process)))))))
+     (buffer-list))))
+
+(defmacro python-comint--with-related-buffers (&rest body)
+  "From an inferior process, evaluate BODY in all related buffers"
+  `(dolist (buffer (python-comint--related-buffers))
+     (with-current-buffer buffer ,@body)))
+
 (defun python-comint--process-state-changed (state)
   (setq mode-line-process
 	(cond ((eq state 'ready)
@@ -525,15 +543,19 @@ sections after the ones already marked."
 	       '(:propertize ":exited" face python-x-modeline-exited-face))))
   (force-mode-line-update))
 
+(defun python-comint--update-process-state (state)
+  (unless (eq python-comint--process-state state)
+    (python-comint--with-related-buffers
+     (python-comint--process-state-changed state))
+    (setq python-comint--process-state state)))
+
 (defun python-comint--process-state-run (&rest r)
   ;; we might run from either the main or inferior process, so setup the
   ;; initial buffer to be always the inferior
   (let ((process (python-shell-get-process)))
     (when process
       (with-current-buffer (process-buffer process)
-	(with-current-buffer python-shell--parent-buffer
-	  (python-comint--process-state-changed 'running))
-	(setq python-comint--process-status 'running)))))
+	(python-comint--update-process-state 'running)))))
 
 (add-function :after (symbol-function 'python-shell-send-string)
 	      #'python-comint--process-state-run)
@@ -564,9 +586,7 @@ exception. By default, simply call `display-buffer' according to
   (let ((buffer (process-buffer process)))
     (unless (comint-check-proc buffer)
       (with-current-buffer buffer
-	(with-current-buffer python-shell--parent-buffer
-	  (python-comint--process-state-changed 'exited))
-	(setq python-comint--process-status 'exited)))))
+	(python-comint--update-process-state 'exited)))))
 
 (defun python-comint--output-filter (output)
   (save-excursion
@@ -574,16 +594,12 @@ exception. By default, simply call `display-buffer' according to
     (cond ((re-search-backward python-comint-exceptions-regex
 			       comint-last-output-start t)
 	   ;; exception in output
-	   (with-current-buffer python-shell--parent-buffer
-	     (python-comint--process-state-changed 'error))
-	   (setq python-comint--process-status 'error)
+	   (python-comint--update-process-state 'error)
 	   (funcall python-shell-show-exception-function (current-buffer)))
 	  ((and (equal (comint-check-proc (current-buffer)) '(run stop))
 		(looking-back comint-prompt-regexp))
 	   ;; ready
-	   (with-current-buffer python-shell--parent-buffer
-	     (python-comint--process-state-changed 'ready))
-	   (setq python-comint--process-status 'ready)))))
+	   (python-comint--update-process-state 'ready)))))
 
 (defun python-comint--input-send (proc string)
   (let ((inhibit-send nil))
@@ -600,10 +616,7 @@ exception. By default, simply call `display-buffer' according to
 	  (setq inhibit-send t)
 	  (python-help--display-for-string proc args))))
 
-    (setq python-comint--process-status 'running)
-    (with-current-buffer python-shell--parent-buffer
-      (python-comint--process-state-changed 'running))
-
+    (python-comint--update-process-state 'running)
     (comint-simple-send proc (if inhibit-send "" string))))
 
 (defun python-x--comint-setup ()
@@ -616,9 +629,8 @@ exception. By default, simply call `display-buffer' according to
   (setq-local python-shell--parent-buffer python-shell--parent-buffer)
 
   ;; start in "running state"
-  (setq-local python-comint--process-status 'running)
-  (with-current-buffer python-shell--parent-buffer
-    (python-comint--process-state-changed 'running)))
+  (setq-local python-comint--process-state nil)
+  (python-comint--update-process-state 'running))
 
 (add-hook 'inferior-python-mode-hook #'python-x--comint-setup)
 
@@ -682,9 +694,10 @@ argument is given, prompt for a statement to inspect."
 (defun python-shell-switch-to-buffer ()
   "From an inferior process, switch back to parent Python buffer."
   (interactive)
-  (if python-shell--parent-buffer
-      (pop-to-buffer python-shell--parent-buffer)
-      (message "No associated Python buffer")))
+  (let ((buffer (car-safe (python-comint--related-buffers))))
+    (if python-shell--parent-buffer
+	(pop-to-buffer buffer)
+	(message "No associated Python buffer"))))
 
 ;;;###autoload
 (defun python-shell-print-region-or-symbol ()
