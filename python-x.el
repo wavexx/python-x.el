@@ -361,7 +361,9 @@ spanning more than one line, highlight temporarily the evaluated region using
 
 (defun python-section--search-backward (bound skip)
   (ignore-errors
-   (forward-char (length python-section-delimiter)))
+    ;; catch the mark at point (if any)
+    (forward-char (length python-section-delimiter))
+    (setq bound (min (point) bound)))
   (cl-loop for pos = (search-backward python-section-delimiter bound t)
      while pos do
        (setq pos (match-beginning 0))
@@ -370,7 +372,9 @@ spanning more than one line, highlight temporarily the evaluated region using
 
 (defun python-section--search-forward (bound skip)
   (ignore-errors
-    (forward-char))
+    ;; skip the mark at point (if any)
+    (forward-char)
+    (setq bound (max (point) bound)))
   (cl-loop for pos = (search-forward python-section-delimiter bound t)
      while pos do
        (setq pos (match-beginning 0))
