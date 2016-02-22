@@ -531,6 +531,8 @@ to us (in descending order of recency)."
   `(dolist (buffer (python-comint--related-buffers))
      (with-current-buffer buffer ,@body)))
 
+(defvar-local python-comint--process-state nil)
+
 (defun python-comint--process-state-changed (state)
   (setq mode-line-process
 	(cond ((eq state 'ready)
@@ -625,12 +627,8 @@ exception. By default, simply call `display-buffer' according to
   (setq-local comint-input-sender #'python-comint--input-send)
   (add-function :after (process-sentinel (get-buffer-process (current-buffer)))
 		#'python-comint--process-sentinel)
-
   ;; python-shell--parent-buffer is (erroneusly) let-bound in python.el
   (setq-local python-shell--parent-buffer python-shell--parent-buffer)
-
-  ;; start in "running state"
-  (setq-local python-comint--process-state nil)
   (python-comint--update-process-state 'running))
 
 (add-hook 'inferior-python-mode-hook #'python-x--comint-setup)
@@ -666,7 +664,7 @@ exception. By default, simply call `display-buffer' according to
       (insert output)
       (goto-char (point-min))
       (python-help-mode)
-      (setq-local python-help--parent-proc proc))
+      (setq python-help--parent-proc proc))
     (display-buffer buffer)))
 
 ;;;###autoload
