@@ -695,7 +695,7 @@ argument is given, prompt for a statement to inspect."
   "From an inferior process, switch back to parent Python buffer."
   (interactive)
   (let ((buffer (car-safe (python-comint--related-buffers))))
-    (if python-shell--parent-buffer
+    (if buffer
 	(pop-to-buffer buffer)
 	(message "No associated Python buffer"))))
 
