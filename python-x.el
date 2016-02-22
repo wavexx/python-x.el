@@ -699,6 +699,24 @@ argument is given, prompt for a statement to inspect."
 	(pop-to-buffer buffer)
 	(message "No associated Python buffer"))))
 
+(defun python-shell-switch-to-shell-or-buffer ()
+  "From a Python script, display the inferior process in another window. From
+an inferior process, switch back to parent Python buffer.
+
+  This is a single-key command. Assuming that it is bound to C-c C-z, you can
+navigate back and forth between the buffers with C-c C-z C-z C-z ..."
+  (interactive)
+  (let ((ev (vector last-command-event))
+	(map (make-sparse-keymap))
+	(fun (lambda ()
+	       (interactive)
+	       (if (eq major-mode 'inferior-python-mode)
+		   (python-shell-switch-to-buffer)
+		   (python-shell-switch-to-shell)))))
+    (define-key map ev fun)
+    (set-transient-map map t)
+    (funcall fun)))
+
 ;;;###autoload
 (defun python-shell-print-region-or-symbol ()
   "Send the current region to the inferior Python process, if active; otherwise
@@ -727,7 +745,7 @@ the send the symbol at point. Print and display the result on the output buffer.
   (define-key python-mode-map (kbd "C-c C-f") 'python-shell-send-defun)
   (define-key python-mode-map (kbd "C-c C-b") 'python-shell-send-buffer)
   (define-key python-mode-map (kbd "C-c C-c") 'python-shell-send-dwim)
-  (define-key python-mode-map (kbd "C-c C-z") 'python-shell-switch-to-shell)
+  (define-key python-mode-map (kbd "C-c C-z") 'python-shell-switch-to-shell-or-buffer)
   (define-key python-mode-map (kbd "C-c C-S-z") 'python-shell-display-shell)
   (define-key python-mode-map (kbd "M-<up>") 'python-backward-fold-or-section)
   (define-key python-mode-map (kbd "M-<down>") 'python-forward-fold-or-section)
@@ -735,7 +753,7 @@ the send the symbol at point. Print and display the result on the output buffer.
   (define-key python-mode-map (kbd "C-c C-h") 'python-eldoc-for-region-or-symbol)
   (define-key python-mode-map (kbd "C-c p p") 'python-shell-print-region-or-symbol)
   (define-key python-mode-map (kbd "C-c p h") 'python-help-for-region-or-symbol)
-  (define-key inferior-python-mode-map (kbd "C-c C-z") 'python-shell-switch-to-buffer)
+  (define-key inferior-python-mode-map (kbd "C-c C-z") 'python-shell-switch-to-shell-or-buffer)
   (when (featurep 'expand-region)
     (er/enable-mode-expansions 'python-mode 'python-x-mode-expansions)))
 
