@@ -607,17 +607,18 @@ exception. By default, simply call `display-buffer' according to
 	 (if (zerop (process-exit-status process)) 'exited 'error))))))
 
 (defun python-comint--output-filter (output)
-  (save-excursion
-    (goto-char (point-max))
-    (cond ((re-search-backward python-comint-exceptions-regex
-			       comint-last-output-start t)
-	   ;; exception in output
-	   (python-comint--update-process-state 'error)
-	   (funcall python-shell-show-exception-function (current-buffer)))
-	  ((and (equal (comint-check-proc (current-buffer)) '(run stop))
-		(looking-back comint-prompt-regexp))
-	   ;; ready
-	   (python-comint--update-process-state 'ready)))))
+  (let ((case-fold-search nil))
+    (save-excursion
+      (goto-char (point-max))
+      (cond ((re-search-backward python-comint-exceptions-regex
+				 comint-last-output-start t)
+	     ;; exception in output
+	     (python-comint--update-process-state 'error)
+	     (funcall python-shell-show-exception-function (current-buffer)))
+	    ((and (equal (comint-check-proc (current-buffer)) '(run stop))
+		  (looking-back comint-prompt-regexp))
+	     ;; ready
+	     (python-comint--update-process-state 'ready))))))
 
 (defun python-comint--input-send (proc string)
   (let ((inhibit-send nil))
