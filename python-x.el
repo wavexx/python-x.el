@@ -79,7 +79,7 @@
 ;;; Code:
 (require 'python)
 (require 'folding)
-(require 'cl)
+(require 'cl-lib)
 
 ;; Optional
 (eval-when-compile
@@ -533,7 +533,7 @@ sections after the ones already marked."
   "From an inferior process, return a list of buffers that are connected back
 to us (in descending order of recency)."
   (let ((inferior-buffer (current-buffer)))
-    (remove-if-not
+    (cl-remove-if-not
      (lambda (buffer)
        (with-current-buffer buffer
 	 (when (eq major-mode 'python-mode)
