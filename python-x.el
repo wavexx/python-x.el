@@ -74,6 +74,8 @@
 ;; The keyboard map definition is currently tuned to the author's taste, and
 ;; may change over time. You are encouraged to look at the definition of
 ;; `python-x-setup' and derive your own.
+;;
+;; See the `python-x' customization group for additional settings.
 
 
 ;;; Code:
@@ -84,6 +86,11 @@
 ;; Optional
 (eval-when-compile
   (require 'expand-region nil t))
+
+(defgroup python-x nil
+    "Python eXtensions"
+    :group 'python)
+
 
 ;; Patch some buggy definitions in python.el, for which we need internal symbols
 (when (version< emacs-version "25.1")
