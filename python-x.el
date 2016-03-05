@@ -528,17 +528,30 @@ sections after the ones already marked."
   :group 'python-x)
 
 ;; We need to keep an explicit reference to the inferior buffer to track
-;; execution status among shared processes. We add an explicit hook for the two
-;; main entry points.
+;; execution status among shared processes, along with the final command and
+;; dedicated status. We hook the three main entry points, since there's no
+;; single place we can get all of them.
 (defvar-local python-shell--inferior-buffer nil)
+(defvar-local python-shell--dedicated-p nil)
+(defvar-local python-comint--current-cmd nil)
 
 (defun python-shell--register-inferior (&rest r)
   (setq python-shell--inferior-buffer (process-buffer (python-shell-get-process))))
-
-(add-function :after (symbol-function 'run-python)
-	      #'python-shell--register-inferior)
 (add-function :after (symbol-function 'python-shell-get-or-create-process)
 	      #'python-shell--register-inferior)
+
+(defun python-shell--register-dedicated (dedicated)
+  (setq python-shell--dedicated-p dedicated))
+(add-function :filter-return (symbol-function 'run-python)
+	      #'python-shell--register-dedicated)
+
+(defun python-shell--register-cmd (f cmd &rest r)
+  (let ((buffer (apply f cmd r)))
+    (with-current-buffer (get-buffer buffer)
+      (setq python-comint--current-cmd cmd))
+    buffer))
+(add-function :around (symbol-function 'python-shell-make-comint)
+	      #'python-shell--register-cmd)
 
 (defun python-comint--related-buffers ()
   "From an inferior process, return a list of buffers that are connected back
@@ -587,6 +600,21 @@ to us (in descending order of recency)."
 
 (add-function :after (symbol-function 'python-shell-send-string)
 	      #'python-comint--process-state-run)
+
+(defun python-shell-restart-process ()
+  "Restart the current Python process"
+  (interactive)
+  (let ((proc-name (python-shell-get-process-name python-shell--dedicated-p))
+	(process (python-shell-get-process)))
+    (when process
+      (with-current-buffer (process-buffer process)
+	(comint-quit-subjob)
+	(setq python-comint--process-state 'nil) ; clear the error state
+	(let* ((cmdlist (split-string-and-unquote python-comint--current-cmd))
+	       (interpreter (car cmdlist))
+	       (args (cdr cmdlist)))
+	  (comint-exec (current-buffer) proc-name interpreter nil args)
+	  (run-hooks 'inferior-python-mode-hook))))))
 
 (defcustom python-shell-show-exceptions t
   "Display uncaught exceptions of the inferior Python process using
@@ -657,7 +685,7 @@ exception. By default, simply call `display-buffer' according to
 		#'python-comint--process-sentinel)
   ;; python-shell--parent-buffer is (erroneusly) let-bound in python.el
   (setq-local python-shell--parent-buffer python-shell--parent-buffer)
-  (python-comint--update-process-state 'running))
+  (python-comint--update-process-state 'ready))
 
 (add-hook 'inferior-python-mode-hook #'python-x--comint-setup)
 
