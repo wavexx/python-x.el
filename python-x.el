@@ -409,9 +409,11 @@ spanning more than one line, highlight temporarily the evaluated region using
 		pos))))))
 
 ;;;###autoload
-(defun python-shell-send-fold-or-section ()
+(defun python-shell-send-fold-or-section (&optional arg)
   "Send the section of code at point to the inferior Python process, up to the
-current fold or buffer boundaries.
+current fold or buffer boundaries. When a 0 argument is provided, evaluate from
+the beginning of the buffer up the current section. With a negative argument,
+restart the process as well.
 
 A code \"section\" is delimited in both directions, and in order, by:
 
@@ -428,8 +430,11 @@ nested fold are ignored.
 When the region to be evaluated is longer than a single line and less than a
 screenful, the region is temporarily highlighted according to
 `python-section-highlight'."
-  (interactive)
-  (let ((start (python-section-search t))
+  (interactive "p")
+  (unless arg (setq arg 1))
+  (when (< arg 0)
+    (python-shell-restart-process))
+  (let ((start (if (< arg 1) (point-min) (python-section-search t)))
 	(end (python-section-search nil)))
     (when python-section-highlight
       (python--vhl-full-lines start end 1 1))
@@ -450,7 +455,7 @@ Otherwise, use `python-shell-send-current-fold-or-section'"
   (interactive)
   (if (use-region-p)
       (python-shell-send-region (region-beginning) (region-end))
-      (python-shell-send-fold-or-section)))
+      (call-interactively #'python-shell-send-fold-or-section)))
 
 ;;;###autoload
 (defun python-forward-fold-or-section (&optional count)
