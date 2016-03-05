@@ -32,7 +32,8 @@
 ;;
 ;; python-x installs an handler to show uncaught exceptions produced by
 ;; interactive code evaluation by default. See `python-shell-show-exceptions'
-;; to control this behavior.
+;; to control this behavior. The execution status of the inferior process is
+;; tracked in the modeline, in order to know when the evaluation is complete.
 ;;
 ;; The following functions are introduced:
 ;; - `python-shell-send-line': evaluate and print the current line, accounting
@@ -48,6 +49,9 @@
 ;;   region or symbol at point, displaying the inferior process output.
 ;; - `python-shell-display-shell': Display the inferior Python process output
 ;;   in another window.
+;; - `python-shell-switch-to-shell-or-buffer': Switch between the buffer and
+;;   the inferior (cycling command).
+;; - `python-shell-restart-process': Restart the inferior Python process.
 ;; - `python-forward-fold-or-section': Move forward by fold/sections.
 ;; - `python-backward-fold-or-section': Move backward by fold/sections.
 ;; - `python-mark-fold-or-section': Mark current fold or section.
@@ -574,7 +578,7 @@ to us (in descending order of recency)."
     (setq python-comint--process-state state)))
 
 (defun python-comint--process-state-run (&rest r)
-  ;; we might run from either the main or inferior process, so setup the
+  ;; We might run from either the main or inferior process, so setup the
   ;; initial buffer to be always the inferior
   (let ((process (python-shell-get-process)))
     (when process
