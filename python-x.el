@@ -606,6 +606,7 @@ to us (in descending order of recency)."
 (add-function :after (symbol-function 'python-shell-send-string)
 	      #'python-comint--process-state-run)
 
+;;;###autoload
 (defun python-shell-restart-process ()
   "Restart the current Python process"
   (interactive)
