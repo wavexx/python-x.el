@@ -441,6 +441,18 @@ screenful, the region is temporarily highlighted according to
     (python-shell-send-region start end)))
 
 ;;;###autoload
+(defun python-x-shell-send-buffer (&optional arg)
+  "Send the entire buffer to inferior Python process.
+When called with a non-zero prefix argument, allow execution of code inside
+blocks delimited by \"if __name__== '__main__':\". With a negative prefix
+argument, restart the python process before evaluation."
+  (interactive "p")
+  (unless arg (setq arg 1))
+  (when (< arg 0)
+    (python-shell-restart-process))
+  (call-interactively #'python-shell-send-buffer))
+
+;;;###autoload
 (defun python-shell-send-fold-or-section-and-step ()
   "Send the section of code at point to the inferior Python process, up to the
 current fold or buffer boundaries, then move on to the next."
@@ -804,7 +816,7 @@ the send the symbol at point. Print and display the result on the output buffer.
   (define-key python-mode-map (kbd "C-c C-j") 'python-shell-send-line)
   (define-key python-mode-map (kbd "C-c C-n") 'python-shell-send-line-and-step)
   (define-key python-mode-map (kbd "C-c C-f") 'python-shell-send-defun)
-  (define-key python-mode-map (kbd "C-c C-b") 'python-shell-send-buffer)
+  (define-key python-mode-map (kbd "C-c C-b") 'python-x-shell-send-buffer)
   (define-key python-mode-map (kbd "C-c C-c") 'python-shell-send-dwim)
   (define-key python-mode-map (kbd "C-c C-z") 'python-shell-switch-to-shell-or-buffer)
   (define-key python-mode-map (kbd "C-c C-S-z") 'python-shell-display-shell)
