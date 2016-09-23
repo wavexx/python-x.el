@@ -25,6 +25,11 @@
      ;; Specials
      ("^ *\\(?:|  \\)*\\(__\\w+__\\)" 1 'font-lock-function-name-face))))
 
+(defvar python-help-mode-syntax-table
+  (let ((table (make-syntax-table)))
+    (modify-syntax-entry ?' "\"" table)
+    table))
+
 (defvar-local python-help--parent-proc nil)
 
 ;;;###autoload
