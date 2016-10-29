@@ -566,7 +566,10 @@ sections after the ones already marked."
 
 (defun python-shell--register-inferior (&rest r)
   (setq python-shell--inferior-buffer (process-buffer (python-shell-get-process))))
-(add-function :after (symbol-function 'python-shell-get-or-create-process)
+(add-function :after (symbol-function
+		      (if (version< emacs-version "25.1")
+			  'python-shell-get-or-create-process
+			'run-python))
 	      #'python-shell--register-inferior)
 
 (defun python-shell--register-dedicated (dedicated)
