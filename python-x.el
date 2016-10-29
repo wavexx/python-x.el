@@ -96,7 +96,20 @@
     :group 'python)
 
 
-;; Patch some buggy definitions in python.el, for which we need internal symbols
+;; Patch some buggy definitions in python.el
+
+;; http://debbugs.gnu.org/cgi/bugreport.cgi?bug=22897
+(when (version< emacs-version "25.2")
+  (defun python-shell-completion-native-try ()
+    "Return non-nil if can trigger native completion."
+    (let ((python-shell-completion-native-enable t)
+	  (python-shell-completion-native-output-timeout
+	   python-shell-completion-native-try-output-timeout))
+      (python-shell-completion-native-get-completions
+       (get-buffer-process (current-buffer))
+       nil "_"))))
+
+;; http://debbugs.gnu.org/cgi/bugreport.cgi?bug=21086
 (when (version< emacs-version "25.1")
   (eval-and-compile
     (defconst python-rx-constituents
@@ -166,7 +179,6 @@ This variant of `rx' supports common Python named REGEXPS."
 	      (t
 	       (rx-to-string (car regexps) t))))))
 
-  ;; http://debbugs.gnu.org/cgi/bugreport.cgi?bug=21086
   (defun python-shell-buffer-substring (start end &optional nomain)
     "Send buffer substring from START to END formatted for shell.
 This is a wrapper over `buffer-substring' that takes care of
