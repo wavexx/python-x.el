@@ -14,7 +14,7 @@ interactive code evaluation with an inferior Python process.
 
 This package is fully documented in the source and maintained through MELPA:
 
-http://melpa.org/#/python-x
+https://melpa.org/#/python-x
 
 .. _volatile-highlights: http://melpa.org/#/volatile-highlights
 .. _expand-region: http://melpa.org/#/expand-region
