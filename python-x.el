@@ -689,7 +689,7 @@ exception. By default, simply call `display-buffer' according to
 	       (python-comint--update-process-state 'error)
 	       (funcall python-shell-show-exception-function (current-buffer)))
 	      ((and (equal (comint-check-proc (current-buffer)) '(run stop))
-		    (looking-back comint-prompt-regexp))
+		    (looking-back comint-prompt-regexp comint-last-input-end))
 	       ;; ready
 	       (python-comint--update-process-state 'ready)))))))
 
