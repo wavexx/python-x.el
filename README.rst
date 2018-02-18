@@ -14,8 +14,22 @@ process.
 - Improved exception handling.
 - Improved ElDoc/Help behavior.
 
-In a ``python-mode`` buffer use ``C-c C-p`` to start a new interpreter,
-then use ``C-c C-c`` to evaluate the current section.
+Use ``python-x-setup`` in your emacs startup:
+
+.. code:: elisp
+
+   (python-x-setup)
+
+In any ``python-mode`` buffer use ``C-c C-p`` to start a new
+interpreter, then use ``C-c C-c`` to evaluate the current section. The
+default section delimiter is ``# ---`` but can be changed via
+``python-section-delimiter`` to be similar to Spyder/Pyzo:
+
+.. code:: elisp
+
+  (setq python-section-delimiter "##")
+
+See the ``python-x`` customization group for additional settings.
 
 This package is fully documented in the source and maintained through
 MELPA:
