@@ -75,6 +75,9 @@
 ;;
 ;; (python-x-setup)
 ;;
+;; In a `python-mode' buffer use [C-c C-p] to start a new interpreter,
+;; then use [C-c C-c] to evaluate the current section.
+;;
 ;; The keyboard map definition is currently tuned to the author's taste, and
 ;; may change over time. You are encouraged to look at the definition of
 ;; `python-x-setup' and derive your own.
